@@ -2,15 +2,17 @@ using UnityEngine;
 using UnityEngine.UI;
 using TMPro;
 
+
 public class Cell : MonoBehaviour
 {
-    public Vector2Int cellPos;        
-    internal TicTacPlayer player = TicTacPlayer.None;
+    [Header("Set Cell Pos")]
+    public Vector2Int cellPos;   
 
+    [Header("UI")]
     public Image cellImage;
-
     private Button button;
 
+    internal TicTacPlayer player = TicTacPlayer.None;
     private void Awake()
     {
         button = GetComponent<Button>();
@@ -18,13 +20,15 @@ public class Cell : MonoBehaviour
 
     private void Start()
     {
+
         GameManager.Instance.InitGridCells(this);
         button.onClick.AddListener(OnClickCell);
        // gridPos = new Vector2Int(index / 3, index % 3);
     }
 
-    private void OnClickCell()
+    internal void OnClickCell()
     {
+
         if (player != TicTacPlayer.None)
             return;
 
@@ -35,15 +39,20 @@ public class Cell : MonoBehaviour
         GameManager.Instance.NextMove();
 
     }
-    //AI click
-    public void AI_Click()
-    {
-        OnClickCell(); 
-    }
+    //AI click change to on click
+    //public void AI_Click()
+    //{
+    //    OnClickCell(); 
+    //}
 
     public void ResetCell()
     {
         player = TicTacPlayer.None;
         cellImage.sprite = null;
     }
+
+    //public void SetInteractable(bool on)
+    //{
+    //    if (button != null) button.interactable = on;
+    //}
 }
