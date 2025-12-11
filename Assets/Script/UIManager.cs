@@ -17,6 +17,7 @@ public class UIManager : MonoBehaviour
 
     [Header("Mode Selection Panel")]
     [SerializeField] private GameObject modePanel;
+    [SerializeField] private GameObject PlayWith;
     [SerializeField] private Button buttonPVP;
     [SerializeField] private Button buttonAI;
 
@@ -27,6 +28,12 @@ public class UIManager : MonoBehaviour
     [Header("Buttons")]
     [SerializeField] private Button restartButton;
     [SerializeField] private Button changeMode;
+
+    [SerializeField] private Button startGameButton;
+
+    [Header("Back Buttons")]
+    [SerializeField] private Button B1PlayWith;
+    [SerializeField] private Button B2ModePanel;
 
     private Color activeColor = new Color(1f, 1f, 0.5f);
     private Color normalColor = Color.white;
@@ -43,6 +50,7 @@ public class UIManager : MonoBehaviour
         {
             Destroy(gameObject);
         }
+        
     }
     private void Start()
     {
@@ -54,33 +62,42 @@ public class UIManager : MonoBehaviour
         changeMode.onClick.AddListener(OnChangeMode);
 
         buttonPVP.onClick.AddListener(OnClickPVP);
-        buttonAI.onClick.AddListener(OnClickAI);
+        buttonAI.onClick.AddListener(OnClickPVAI);
         difficultyDropdown.onValueChanged.AddListener(OnDifficultySelected);
+        startGameButton.onClick.AddListener(OnStartGameClicked);
     }
 
     private void OnClickPVP()
     {
         GameManager.Instance.SetGameMode(GameMode.PlayerVsPlayer);
         modePanel.SetActive(false);
+        GameManager.Instance.RestartGame();
+        startGameButton.gameObject.SetActive(true);
     }
-    private void OnClickAI()
+
+    private void OnStartGameClicked()
     {
+        difficultyPanel.SetActive(false);
+        modePanel.SetActive(false);
+        GameManager.Instance.RestartGame();
+        //GameManager.Instance.StartNewGame(); 
+    }
+    private void OnClickPVAI()
+    {
+        PlayWith.SetActive(false);
         GameManager.Instance.SetGameMode(GameMode.PlayerVsAI);
         difficultyPanel.SetActive(true);
+        B1PlayWith.onClick.AddListener(ShowPlayWithPanel);
+        startGameButton.gameObject.SetActive(true);
     }
     private void OnDifficultySelected(int index)
     {
         AIManager.Instance.difficulty = (AIDifficulty)index;
-
-        difficultyPanel.SetActive(false);
-        modePanel.SetActive(false);
-
-        Debug.Log("Difficulty Selected: " + AIManager.Instance.difficulty);
     }
     private void OnChangeMode()
     {
-        GameManager.Instance.RestartGame();
-        //modePanel.SetActive(true);
+        winPanel.SetActive(false);
+        modePanel.SetActive(true);
         ShowModePanel();
     }
     public void UpdatePlayerTurn(TicTacPlayer player)
@@ -103,12 +120,14 @@ public class UIManager : MonoBehaviour
         winPanel.SetActive(true);
         string pName = (player == TicTacPlayer.Player1) ? "Player 1 (X)" : "Player 2 (O)";
         winText.text = pName + " WINS!";
+        //B2ModePanel.gameObject.SetActive(false);
     }
 
     public void ShowDraw()
     {
         winPanel.SetActive(true);
         winText.text = "DRAW!";
+        //B2ModePanel.gameObject.SetActive(false);
     }
 
     public void HideWinPanel()
@@ -118,5 +137,12 @@ public class UIManager : MonoBehaviour
     public void ShowModePanel()
     {
         modePanel.SetActive(true);
+        PlayWith.SetActive(true);
+    }
+    public void ShowPlayWithPanel()
+    {
+        PlayWith.SetActive(true);
+        difficultyPanel.SetActive(false);
+
     }
 }

@@ -5,7 +5,6 @@ using System;
 
 public enum AIDifficulty
 {
-    None,
     Easy,
     Medium,
     Hard
@@ -17,12 +16,11 @@ public class AIManager : MonoBehaviour
     private const int Player = 1;
     private const int Player_AI = 2;
 
+    private float delayTime = 0.4f;
+
     public static AIManager Instance;
 
     public AIDifficulty difficulty = AIDifficulty.Easy;
-
-    //public AIBase easyAI;
-    //public AIBase hardAI;
 
     private void Awake()
     {
@@ -41,19 +39,44 @@ public class AIManager : MonoBehaviour
         {
             case AIDifficulty.Easy: return GetMove_Easy(board);
             case AIDifficulty.Medium: return GetMove_Minimax(board ,3);
-            case AIDifficulty.Hard: return GetMove_Minimax(board, -1);
+            case AIDifficulty.Hard: return GetMove_Minimax(board, 9);
         }
 
         return -1;
     }
-    internal IEnumerator AIDelay()
+    internal IEnumerator WaitAndNextMove()
     {
         // add veriable for time
-        yield return new WaitForSeconds(0.4f);
+        yield return new WaitForSeconds(delayTime);
 
-        int[] board = GameManager.Instance.BoardToArray();
-        int moveIndex = GetAIMove(board);
+        if (GameManager.Instance.GetCurrentPlayer() != GameManager.Instance.aiPlayer)
+            yield break;
 
+        int[] board = GameManager.Instance.ConvertBoardToIntArray();
+
+        bool boardEmpty = true;
+        for (int i = 0; i < 9; i++)
+        {
+            if (board[i] != 0) { boardEmpty = false; break; }
+        }
+
+        int moveIndex;
+        //if (boardEmpty)
+        //{
+        //    // pick any empty cell at random
+        //    List<int> empty = new List<int>();
+        //    for (int i = 0; i < 9; i++) if (board[i] == 0) empty.Add(i);
+        //    moveIndex = empty[UnityEngine.Random.Range(0, empty.Count)];
+
+        //    //center
+        //    //empty.Add(4);
+        //}
+        //else
+        //{
+        //    moveIndex = GetAIMove(board);
+        //}
+
+        moveIndex = GetAIMove(board);
         if (moveIndex >= 0)
         {
             int x = moveIndex / 3;
@@ -87,9 +110,9 @@ public class AIManager : MonoBehaviour
             if (boardVal[i] == 0)
             {
                 boardVal[i] = Player_AI;
-                int moveVal = Minimax(boardVal, 0, false , maxDepth);
+                int moveVal = Minimax_AlphaBeta(boardVal, 0, false , maxDepth, int.MinValue, int.MaxValue);
                 boardVal[i] = 0;
-
+                Debug.Log("position :" + i + "move val" +moveVal);
                 if (moveVal > bestVal)
                 {
                     bestVal = moveVal;
@@ -100,8 +123,8 @@ public class AIManager : MonoBehaviour
 
         return bestMove;
     }
-    //Minmax logic
-    private int Minimax(int[] boardVal, int depth, bool turn, int maxDepth)
+    //Minmax recursive logic 
+    private int Minimax_AlphaBeta(int[] boardVal, int depth, bool turn, int maxDepth, int alpha, int beta)
     {
         int score = EvaluateBoard(boardVal);
 
@@ -121,9 +144,12 @@ public class AIManager : MonoBehaviour
                 if (boardVal[i] == 0)
                 {
                     boardVal[i] = Player_AI;
-                    int val = Minimax(boardVal, depth + 1, false , maxDepth);
+                    int val = Minimax_AlphaBeta(boardVal, depth + 1, false , maxDepth,alpha ,beta);
                     boardVal[i] = 0;
                     best = Math.Max(best, val);
+                    alpha = Math.Max(alpha, best);
+
+                    if (beta <= alpha) break;
                 }
             }
 
@@ -138,9 +164,12 @@ public class AIManager : MonoBehaviour
                 if (boardVal[i] == 0)
                 {
                     boardVal[i] = Player;
-                    int val = Minimax(boardVal, depth + 1, true , maxDepth);
+                    int val = Minimax_AlphaBeta(boardVal, depth + 1, true, maxDepth, alpha, beta);
                     boardVal[i] = 0;
                     best = Math.Min(best, val);
+                    beta = Math.Min(beta, best);
+
+                    if (beta <= alpha) break;
                 }
             }
 

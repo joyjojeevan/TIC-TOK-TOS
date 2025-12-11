@@ -12,7 +12,7 @@ public class Cell : MonoBehaviour
     public Image cellImage;
     private Button button;
 
-    internal TicTacPlayer player = TicTacPlayer.None;
+    internal TicTacPlayer player = TicTacPlayer.none;
     private void Awake()
     {
         button = GetComponent<Button>();
@@ -29,8 +29,7 @@ public class Cell : MonoBehaviour
     internal void OnClickCell()
     {
 
-        if (player != TicTacPlayer.None)
-            return;
+        if (player != TicTacPlayer.none) return;
 
         player = GameManager.Instance.GetCurrentPlayer();
 
@@ -39,20 +38,11 @@ public class Cell : MonoBehaviour
         GameManager.Instance.NextMove();
 
     }
-    //AI click change to on click
-    //public void AI_Click()
-    //{
-    //    OnClickCell(); 
-    //}
 
     public void ResetCell()
     {
-        player = TicTacPlayer.None;
+        player = TicTacPlayer.none;
         cellImage.sprite = null;
     }
 
-    //public void SetInteractable(bool on)
-    //{
-    //    if (button != null) button.interactable = on;
-    //}
 }

@@ -2,7 +2,7 @@ using UnityEngine;
 using System.Collections;
 public enum TicTacPlayer
 {
-    None,
+    none,
     Player1,
     Player2
 }
@@ -26,8 +26,11 @@ public class GameManager : MonoBehaviour
     [Header("Mode")]
     public GameMode currentMode = GameMode.PlayerVsPlayer;
 
-    private TicTacPlayer currentPlayer = TicTacPlayer.Player1;
+    internal TicTacPlayer currentPlayer;
     private int turn = 0;
+
+    public TicTacPlayer aiPlayer;
+
     private void Awake()
     {
         if (Instance == null)
@@ -59,6 +62,23 @@ public class GameManager : MonoBehaviour
         return currentPlayer;
     }
 
+    public void StartNewGame()
+    {
+        if (currentMode == GameMode.PlayerVsAI)
+            aiPlayer = (Random.Range(0, 2) == 0) ? TicTacPlayer.Player1 : TicTacPlayer.Player2;
+
+        Debug.Log(aiPlayer);
+
+        currentPlayer = TicTacPlayer.Player1;
+
+        ResetBoardOnly();
+
+        UIManager.Instance.UpdatePlayerTurn(currentPlayer);
+
+        if (currentPlayer == aiPlayer && currentMode == GameMode.PlayerVsAI)
+            StartCoroutine(AIManager.Instance.WaitAndNextMove());
+    }
+
     public void NextMove()
     {
         turn++;
@@ -80,14 +100,13 @@ public class GameManager : MonoBehaviour
         currentPlayer = (currentPlayer == TicTacPlayer.Player1) ? TicTacPlayer.Player2 : TicTacPlayer.Player1;
         UIManager.Instance.UpdatePlayerTurn(currentPlayer);
 
-        //TO DO : assign AI to players(1/2)
-        if (currentMode == GameMode.PlayerVsAI && currentPlayer == TicTacPlayer.Player2)
+        // check cp ai or not
+        if (currentMode == GameMode.PlayerVsAI && currentPlayer == aiPlayer)
         {
-            StartCoroutine(AIManager.Instance.AIDelay());
+            StartCoroutine(AIManager.Instance.WaitAndNextMove());
         }
     }
-
-    internal int[] BoardToArray()
+    internal int[] ConvertBoardToIntArray()
     {
         int[] board = new int[9];
         int index = 0;
@@ -107,114 +126,120 @@ public class GameManager : MonoBehaviour
     }
 
     private bool CheckWinner()
-    {
-        {
-            TicTacPlayer p = currentPlayer;
-
+    { 
             // Row check
             for (int r = 0; r < 3; r++)
-                if (gridCells[r, 0].player == p &&
-                    gridCells[r, 1].player == p &&
-                    gridCells[r, 2].player == p)
+                if (gridCells[r, 0].player == currentPlayer &&
+                    gridCells[r, 1].player == currentPlayer &&
+                    gridCells[r, 2].player == currentPlayer)
                     return true;
 
             // Column check
             for (int c = 0; c < 3; c++)
-                if (gridCells[0, c].player == p &&
-                    gridCells[1, c].player == p &&
-                    gridCells[2, c].player == p)
+                if (gridCells[0, c].player == currentPlayer &&
+                    gridCells[1, c].player == currentPlayer &&
+                    gridCells[2, c].player == currentPlayer)
                     return true;
 
             // Diagonals
-            if (gridCells[0, 0].player == p &&
-                gridCells[1, 1].player == p &&
-                gridCells[2, 2].player == p)
+            if (gridCells[0, 0].player == currentPlayer &&
+                gridCells[1, 1].player == currentPlayer &&
+                gridCells[2, 2].player == currentPlayer)
                 return true;
 
-            if (gridCells[0, 2].player == p &&
-                gridCells[1, 1].player == p &&
-                gridCells[2, 0].player == p)
+            if (gridCells[0, 2].player == currentPlayer &&
+                gridCells[1, 1].player == currentPlayer &&
+                gridCells[2, 0].player == currentPlayer)
                 return true;
-            //// Rows
-            //for (int i = 0; i < gridCells.GetLength(0); i++)
-            //{
-            //    int count = 0;
-            //    for (int j = 0; j < gridCells.GetLength(1); j++)
-            //    {
-            //        if (gridCells[i, j].player != currentPlayer)
-            //        {
-            //            break;
-            //        }
-            //        count++;
-            //    }
-            //    if(count == gridCells.GetLength(0))
-            //        return true;
-            //}
-            //// Columns
-            //for (int j = 0; j < gridCells.GetLength(0); j++)
-            //{
-            //    int count = 0;
-            //    for (int i = 0; i < gridCells.GetLength(0); i++)
-            //    {
-            //        if (gridCells[i, j].player != currentPlayer)
-            //        {
-            //            break;
-            //        }
-            //        count++;
-            //    }
-            //    if (count == gridCells.GetLength(0))
-            //        return true;
-            //}
-
-            //// Diagonals
-            //int mainDiagCount = 0;
-            //for (int i = 0; i < gridCells.GetLength(0); i++)
-            //{
-            //    if (gridCells[i, i].player != currentPlayer)
-            //    {
-            //        break;
-            //    }
-            //    mainDiagCount++;
-            //}
-            //if (mainDiagCount == gridCells.GetLength(0))
-            //    return true;
-
-            //int antiDiagCount = 0;
-            //for (int i = 0; i < gridCells.GetLength(0); i++)
-            //{
-            //    if (gridCells[i, gridCells.GetLength(0) - 1 - i].player != currentPlayer)
-            //    {
-            //        break;
-            //    }
-            //    antiDiagCount++;
-            //}
-            //if (antiDiagCount == gridCells.GetLength(0))
-            //    return true;
-
-            return false;
-        }
-
+        return false;
     }
 
     //TODO :create distroy cell
     internal void RestartGame()
     {
+        StartNewGame();
 
         turn = 0;
-        currentPlayer = TicTacPlayer.Player1;
+        //currentPlayer = TicTacPlayer.Player1;
 
         UIManager.Instance.HideWinPanel();
-        UIManager.Instance.UpdatePlayerTurn(currentPlayer);
 
         foreach (var cell in gridCells)
-            {
-            Debug.Log("Calling ResetCell on: " + cell.cellPos); 
-            cell.ResetCell(); 
+        {
+            cell.ResetCell();
         }
+
+        UIManager.Instance.UpdatePlayerTurn(currentPlayer);
 
         //UIManager.Instance.ShowModePanel();
     }
+
+    internal void ResetBoardOnly()
+    {
+        turn = 0;
+        for (int x = 0; x < 3; x++)
+            for (int y = 0; y < 3; y++)
+                if (gridCells[x, y] != null)
+                    gridCells[x, y].ResetCell();
+    }
 }
+//// Rows
+//for (int i = 0; i < gridCells.GetLength(0); i++)
+//{
+//    int count = 0;
+//    for (int j = 0; j < gridCells.GetLength(1); j++)
+//    {
+//        if (gridCells[i, j].player != currentPlayer)
+//        {
+//            break;
+//        }
+//        count++;
+//    }
+//    if(count == gridCells.GetLength(0))
+//        return true;
+//}
+//// Columns
+//for (int j = 0; j < gridCells.GetLength(0); j++)
+//{
+//    int count = 0;
+//    for (int i = 0; i < gridCells.GetLength(0); i++)
+//    {
+//        if (gridCells[i, j].player != currentPlayer)
+//        {
+//            break;
+//        }
+//        count++;
+//    }
+//    if (count == gridCells.GetLength(0))
+//        return true;
+//}
+
+//// Diagonals
+//int mainDiagCount = 0;
+//for (int i = 0; i < gridCells.GetLength(0); i++)
+//{
+//    if (gridCells[i, i].player != currentPlayer)
+//    {
+//        break;
+//    }
+//    mainDiagCount++;
+//}
+//if (mainDiagCount == gridCells.GetLength(0))
+//    return true;
+
+//int antiDiagCount = 0;
+//for (int i = 0; i < gridCells.GetLength(0); i++)
+//{
+//    if (gridCells[i, gridCells.GetLength(0) - 1 - i].player != currentPlayer)
+//    {
+//        break;
+//    }
+//    antiDiagCount++;
+//}
+//if (antiDiagCount == gridCells.GetLength(0))
+//    return true;
+
+
 //private readonly int[,] winLines =
 //{
 //    {0,1,2},{3,4,5},{6,7,8},
