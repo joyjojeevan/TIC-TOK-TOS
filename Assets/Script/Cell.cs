@@ -34,6 +34,9 @@ public class Cell : MonoBehaviour
         player = GameManager.Instance.GetCurrentPlayer();
 
         cellImage.sprite = (player == TicTacPlayer.Player1) ? GameManager.Instance.xSprite : GameManager.Instance.oSprite;
+        AudioManager.Instance.PlaySound(SoundType.CellClick);
+        SmoothAnimation.Instance.PlayBounce(GetComponent<RectTransform>());
+        //SmoothAnimation.Instance.PlayScale(GetComponent<RectTransform>());
 
         GameManager.Instance.NextMove();
 
@@ -43,6 +46,9 @@ public class Cell : MonoBehaviour
     {
         player = TicTacPlayer.none;
         cellImage.sprite = null;
+        cellImage.color = Color.white;
+        cellImage.rectTransform.localScale = Vector3.one;
+        //GetComponent<RectTransform>().localScale = Vector3.one;
     }
 
 }

@@ -2,6 +2,7 @@
 using UnityEngine.UI;
 using UnityEngine;
 using UnityEditor.Rendering.LookDev;
+using System.Collections.Generic;
 
 public class UIManager : MonoBehaviour
 {
@@ -12,8 +13,12 @@ public class UIManager : MonoBehaviour
     [SerializeField] private TMP_Text winText;
 
     [Header("Player Panels")]
-    [SerializeField] private Image player1Panel;
-    [SerializeField] private Image player2Panel;
+    public Image player1Image;
+    public Image player2Image;
+    public RectTransform player1Panel;
+    public RectTransform player2Panel;
+    public TMP_Text player1Text;
+    public TMP_Text player2Text;
 
     [Header("Mode Selection Panel")]
     [SerializeField] private GameObject modePanel;
@@ -27,6 +32,7 @@ public class UIManager : MonoBehaviour
 
     [Header("Buttons")]
     [SerializeField] private Button restartButton;
+    [SerializeField] private RectTransform restartButtonAni;
     [SerializeField] private Button changeMode;
 
     [SerializeField] private Button startGameButton;
@@ -37,8 +43,6 @@ public class UIManager : MonoBehaviour
 
     private Color activeColor = new Color(1f, 1f, 0.5f);
     private Color normalColor = Color.white;
-
-
     private void Awake()
     {
         if (Instance == null)
@@ -63,6 +67,7 @@ public class UIManager : MonoBehaviour
 
         buttonPVP.onClick.AddListener(OnClickPVP);
         buttonAI.onClick.AddListener(OnClickPVAI);
+
         difficultyDropdown.onValueChanged.AddListener(OnDifficultySelected);
         startGameButton.onClick.AddListener(OnStartGameClicked);
     }
@@ -70,8 +75,9 @@ public class UIManager : MonoBehaviour
     private void OnClickPVP()
     {
         GameManager.Instance.SetGameMode(GameMode.PlayerVsPlayer);
-        modePanel.SetActive(false);
         GameManager.Instance.RestartGame();
+
+        modePanel.SetActive(false);
         startGameButton.gameObject.SetActive(true);
     }
 
@@ -80,7 +86,6 @@ public class UIManager : MonoBehaviour
         difficultyPanel.SetActive(false);
         modePanel.SetActive(false);
         GameManager.Instance.RestartGame();
-        //GameManager.Instance.StartNewGame(); 
     }
     private void OnClickPVAI()
     {
@@ -104,30 +109,35 @@ public class UIManager : MonoBehaviour
     {
         if (player == TicTacPlayer.Player1)
         {
-            player1Panel.color = activeColor;
-            player2Panel.color = normalColor;
+            player1Image.color = activeColor;
+            player2Image.color = normalColor;
+            //smoothAnimation.PlayPopup(player1Panel);
+            SmoothAnimation.Instance.PlayPopup(player1Panel);
         }
         else
         {
-            player2Panel.color = activeColor;
-            player1Panel.color = normalColor;
+            player2Image.color = activeColor;
+            player1Image.color = normalColor;
+            //smoothAnimation.PlayPopup(player2Panel);
+            SmoothAnimation.Instance.PlayPopup(player2Panel);
         }
         modePanel.SetActive(false);
     }
-
     public void ShowWin(TicTacPlayer player)
     {
         winPanel.SetActive(true);
-        string pName = (player == TicTacPlayer.Player1) ? "Player 1 (X)" : "Player 2 (O)";
-        winText.text = pName + " WINS!";
-        //B2ModePanel.gameObject.SetActive(false);
+        string pName = (player == TicTacPlayer.Player1) ? player1Text.text: player2Text.text;
+        winText.text = $"{pName} WINS!";
+        AudioManager.Instance.PlaySound(SoundType.Win);
+        SmoothAnimation.Instance.PlayPopup(restartButtonAni);
     }
 
     public void ShowDraw()
     {
         winPanel.SetActive(true);
         winText.text = "DRAW!";
-        //B2ModePanel.gameObject.SetActive(false);
+        AudioManager.Instance.PlaySound(SoundType.Draw);
+        SmoothAnimation.Instance.PlayPopup(restartButtonAni);
     }
 
     public void HideWinPanel()

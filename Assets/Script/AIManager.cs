@@ -16,7 +16,7 @@ public class AIManager : MonoBehaviour
     private const int Player = 1;
     private const int Player_AI = 2;
 
-    private float delayTime = 0.4f;
+    private float delayTime = 1f;
 
     public static AIManager Instance;
 
@@ -61,20 +61,20 @@ public class AIManager : MonoBehaviour
         }
 
         int moveIndex;
-        //if (boardEmpty)
-        //{
-        //    // pick any empty cell at random
-        //    List<int> empty = new List<int>();
-        //    for (int i = 0; i < 9; i++) if (board[i] == 0) empty.Add(i);
-        //    moveIndex = empty[UnityEngine.Random.Range(0, empty.Count)];
+        if (boardEmpty)
+        {
+            //// pick any empty cell at random
+            List<int> empty = new List<int>();
+            for (int i = 0; i < 9; i++) if (board[i] == 0) empty.Add(i);
+            moveIndex = empty[UnityEngine.Random.Range(0, empty.Count)];
 
-        //    //center
-        //    //empty.Add(4);
-        //}
-        //else
-        //{
-        //    moveIndex = GetAIMove(board);
-        //}
+            //center
+            //if (board[4] == 0) empty.Add(4);
+        }
+        else
+        {
+            moveIndex = GetAIMove(board);
+        }
 
         moveIndex = GetAIMove(board);
         if (moveIndex >= 0)
