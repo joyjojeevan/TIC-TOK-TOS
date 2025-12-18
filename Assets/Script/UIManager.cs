@@ -42,13 +42,21 @@ public class UIManager : MonoBehaviour
     [SerializeField] private Button changeMode;
 
     [Header("Back Buttons")]
-    [SerializeField] private Button B1PlayWith;
-    [SerializeField] private Button B2ModePanel;
+    [SerializeField] private Button backToPlayWithPanel;
+    [SerializeField] private Button backToModePanel;
 
     [Header("Network Room Setup Panel (Lobby Scene)")]
     [SerializeField] private GameObject networkSetupPanel;
+    [SerializeField] private GameObject publicRoomPanel;
+    [SerializeField] private GameObject privateRoomPanel;
     [SerializeField] private TMP_Text statusText; 
-    [SerializeField] private Button joinRoomButton;
+    //[SerializeField] private Button joinRoomButton;
+
+    [Header("Network Room UI")]
+    [SerializeField] private TMP_InputField roomIDInput;
+    [SerializeField] private Button quickPlayBtn;
+    [SerializeField] private Button createPrivateBtn;
+    [SerializeField] private Button joinPrivateBtn;
 
     #endregion
     private Color activeColor = new Color(1f, 1f, 0.5f);
@@ -62,13 +70,22 @@ public class UIManager : MonoBehaviour
         buttonPVP.onClick.AddListener(() => StartLocalGame(GameMode.PlayerVsPlayer));
         buttonAI.onClick.AddListener(ShowAIDifficulty);
         buttonPVN.onClick.AddListener(ShowNetworkSetup);
-        joinRoomButton.onClick.AddListener(() => NetworkManager.Instance.JoinOrCreateRoom());
+        //joinRoomButton.onClick.AddListener(() => NetworkManager.Instance.JoinRandomMatch());
 
         difficultyDropdown.onValueChanged.AddListener(OnDifficultySelected);
         startGameButton.onClick.AddListener(() => StartLocalGame(GameMode.PlayerVsAI));
 
-        joinRoomButton.interactable = false; // Disable until we are ready
-        joinRoomButton.onClick.AddListener(OnJoinRoomClicked);
+        quickPlayBtn.onClick.AddListener(() => NetworkManager.Instance.JoinRandomMatch());
+
+        createPrivateBtn.onClick.AddListener(() => {
+            NetworkManager.Instance.CreatePrivateRoom(roomIDInput.text);});
+        joinPrivateBtn.onClick.AddListener(() => {
+            NetworkManager.Instance.JoinPrivateRoom(roomIDInput.text); });
+
+        //joinRoomButton.interactable = false; // Disable until we are ready
+        //joinRoomButton.onClick.AddListener(OnJoinRoomClicked);
+
+        backToModePanel.onClick.AddListener(() => OnBackButtonClicked());
 
         restartButton.onClick.AddListener(GameManager.Instance.RestartGame);
         ShowLobby();
@@ -85,7 +102,7 @@ public class UIManager : MonoBehaviour
     // Called by NetworkManager when connection and lobby join is complete
     public void OnPhotonLobbyReady()
     {
-        joinRoomButton.interactable = true;
+        //joinRoomButton.interactable = true;
         if (buttonPVN != null)
         {
             buttonPVN.interactable = true;
@@ -139,10 +156,10 @@ public class UIManager : MonoBehaviour
     {
         modeSelectionPanel.SetActive(false);
         difficultyPanel.SetActive(true);
-        B1PlayWith.onClick.AddListener(ShowModePanel);
+        backToPlayWithPanel.onClick.AddListener(ShowModePanel);
     }
 
-    private void ShowNetworkSetup()
+    public void ShowNetworkSetup()
     {
         modeSelectionPanel.SetActive(false);
         networkSetupPanel.SetActive(true);
@@ -158,7 +175,7 @@ public class UIManager : MonoBehaviour
     public void OpenGamePanel()
     {
         lobbyPanel.SetActive(false);
-        B2ModePanel.onClick.AddListener(ShowLobby);
+        backToModePanel.onClick.AddListener(ShowLobby);
         gamePanel.SetActive(true);
         winPanel.SetActive(false);
     }
@@ -200,8 +217,8 @@ public class UIManager : MonoBehaviour
     {
         if (NetworkManager.Instance != null && PhotonNetwork.IsConnectedAndReady)
         {
-            NetworkManager.Instance.JoinOrCreateRoom();
-            joinRoomButton.interactable = false;
+            NetworkManager.Instance.JoinRandomMatch();
+            //joinRoomButton.interactable = false;
         }
     }
 
@@ -225,6 +242,27 @@ public class UIManager : MonoBehaviour
         winPanel.SetActive(true);
         winText.text = "Waiting for Opponent...";
     }
+    public void OnBackButtonClicked()
+    {
+        if (GameManager.Instance.currentMode == GameMode.PlayerVsNetwork)
+        {
+            NetworkManager.Instance.LeaveRoom();
+        }
+        else
+        {
+            ShowLobby();
+        }
+    }
+    //public void HidePublicRoomPanel()
+    //{
+    //    publicRoomPanel.SetActive(false);
+    //}
+    //public void HidePrivateRoomPanel()
+    //{
+    //    privateRoomPanel.SetActive(false);
+    //}
+
+
 
     public void UpdatePlayerTurn(TicTacPlayer player)
     {
@@ -300,7 +338,7 @@ public class UIManager : MonoBehaviour
     //    GameManager.Instance.SetGameMode(GameMode.PlayerVsAI);
     //    SceneManager.LoadScene("Game");
     //    difficultyPanel.SetActive(true);
-    //    B1PlayWith.onClick.AddListener(ShowPlayWithPanel);
+    //    backToPlayWithPanel.onClick.AddListener(ShowPlayWithPanel);
     //    startGameButton.gameObject.SetActive(true);
     //}
     //private void OnClickPVNetwork()
