@@ -5,7 +5,6 @@ public enum SoundType
     Draw,
     CellClick
 }
-
 public class AudioManager : MonoBehaviour
 {
     public static AudioManager Instance;
@@ -16,7 +15,6 @@ public class AudioManager : MonoBehaviour
     public AudioClip cellClick;
 
     private AudioSource audioSource;
-
     private void Awake()
     {
         if (Instance == null)
@@ -28,7 +26,6 @@ public class AudioManager : MonoBehaviour
         {
             Destroy(gameObject);
         }
-
         audioSource = GetComponent<AudioSource>();
     }
 

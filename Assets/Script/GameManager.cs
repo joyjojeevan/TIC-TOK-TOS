@@ -1,6 +1,10 @@
 using UnityEngine;
 using System.Collections;
 using System.Collections.Generic;
+using Photon.Pun;
+using UnityEngine.SceneManagement;
+using Random = UnityEngine.Random;
+using System.ComponentModel;
 public enum TicTacPlayer
 {
     none,
@@ -10,15 +14,15 @@ public enum TicTacPlayer
 public enum GameMode
 {
     PlayerVsPlayer,
-    PlayerVsAI
-   // PlayerVsNetwork
+    PlayerVsAI,
+    PlayerVsNetwork
 }
-public class GameManager : MonoBehaviour
+public class GameManager : MonoBehaviourPun
 {
     public static GameManager Instance;
 
     [Header("Cell Basic and Panel)")]
-    public Cell[,] gridCells = new Cell[3,3];
+    public Cell[,] gridCells = new Cell[3, 3];
 
     [Header("Sprites")]
     public Sprite xSprite;
@@ -31,6 +35,8 @@ public class GameManager : MonoBehaviour
     private int turn = 0;
 
     public TicTacPlayer aiPlayer;
+
+    public bool IsGameOver = false;
 
     private void Awake()
     {
@@ -46,9 +52,68 @@ public class GameManager : MonoBehaviour
     }
     private void Start()
     {
-        UIManager.Instance.ShowModePanel();
-        UIManager.Instance.UpdatePlayerTurn(currentPlayer);
+        if (SceneManager.GetActiveScene().name != "Game")
+            return;
+
+        currentPlayer = TicTacPlayer.Player1; // Always start with Player 1
+
+        if (currentMode == GameMode.PlayerVsNetwork)
+        {
+            StartNetworkGameFlow();
+        }
+        else
+        {
+            StartNewGame();
+        }
+        if (photonView == null)
+        {
+            Debug.LogError("GameManager needs a PhotonView component!");
+        }
+        //currentPlayer = TicTacPlayer.Player1;
+        //UIManager.Instance.ShowModePanel();
+        //UIManager.Instance.ShowModePanel();
+        //UIManager.Instance.UpdatePlayerTurn(currentPlayer);
+
     }
+    private void StartNetworkGameFlow()
+    {
+        if (NetworkManager.Instance == null)
+        {
+            Debug.LogError("NetworkManager not found for network game mode!");
+            return;
+        }
+
+        // 1. Assign player roles
+        NetworkManager.Instance.AssignPlayerRole();
+
+        // 2. Setup player UI texts (You/Opponent)
+        UIManager.Instance.SetupNetworkPlayerUI();
+
+        // 3. Start the game if the room is full
+        if (PhotonNetwork.CurrentRoom.PlayerCount == 2)
+        {
+            StartNewGame();
+        }
+        else
+        {
+            // This case should be rare if loading is correct, but safe to handle.
+            UIManager.Instance.ShowWaitingForOpponent();
+        }
+    }
+    public void SendNetworkMove(int x, int y)
+    {
+        // This sends the instruction to EVERYONE in the room
+        photonView.RPC("RPC_SyncMove", RpcTarget.All, x, y, (int)currentPlayer);
+    }
+    [PunRPC]
+    public void RPC_SyncMove(int x, int y, int playerInt)
+    {
+        TicTacPlayer p = (TicTacPlayer)playerInt;
+        // Find the cell at X, Y and execute the move visually
+        gridCells[x, y].ExecuteMove(p);
+        Debug.Log($"Network Move Received: {x},{y} by Player {p}");
+    }
+
     public void SetGameMode(GameMode mode)
     {
         currentMode = mode;
@@ -65,57 +130,55 @@ public class GameManager : MonoBehaviour
 
     public void StartNewGame()
     {
+        IsGameOver = false;
+        turn = 0;
+        currentPlayer = TicTacPlayer.Player1;
+        ResetBoardOnly();
+        UIManager.Instance.HideWinPanel();
         if (currentMode == GameMode.PlayerVsAI)
         {
             aiPlayer = (Random.Range(0, 2) == 0) ? TicTacPlayer.Player1 : TicTacPlayer.Player2;
-            if (aiPlayer == TicTacPlayer.Player1)
-            {
-                UIManager.Instance.player1Text.text = "AI (X)";
-                UIManager.Instance.player2Text.text = "You (O)";
-            }
-            else
-            {
-                UIManager.Instance.player1Text.text = "You (X)";
-                UIManager.Instance.player2Text.text = "AI (O)";
-            }
+            UIManager.Instance.SetupAIPlayerUI();
+            //if (aiPlayer == TicTacPlayer.Player1)
+            //{
+            //    UIManager.Instance.player1Text.text = "AI (X)";
+            //    UIManager.Instance.player2Text.text = "You (O)";
+            //}
+            //else
+            //{
+            //    UIManager.Instance.player1Text.text = "You (X)";
+            //    UIManager.Instance.player2Text.text = "AI (O)";
+            //}
         }
-        else
+
+        else if(currentMode == GameMode.PlayerVsPlayer)
         {
-            UIManager.Instance.player1Text.text = "Player 1 (X)";
-            UIManager.Instance.player2Text.text = "Player 2 (O)";
+            aiPlayer = TicTacPlayer.none;
+
+            //UIManager.Instance.player1Text.text = "Player 1 (X)";
+            //UIManager.Instance.player2Text.text = "Player 2 (O)";
         }
         Debug.Log(aiPlayer);
 
-        currentPlayer = TicTacPlayer.Player1;
-
-        ResetBoardOnly();
+        //currentPlayer = TicTacPlayer.Player1;
+        Animations.Instance.PopupActive = true;
+        //ResetBoardOnly();
         UIManager.Instance.UpdatePlayerTurn(currentPlayer);
 
         if (currentPlayer == aiPlayer && currentMode == GameMode.PlayerVsAI)
             StartCoroutine(AIManager.Instance.WaitAndNextMove());
     }
-    //public void PopupCellsOfCurrentPlayer()
-    //{
-    //    for (int x = 0; x < 3; x++)
-    //    {
-    //        for (int y = 0; y < 3; y++)
-    //            if (gridCells[x, y].player == currentPlayer)
-    //                SmoothAnimation.Instance.PlayScale(gridCells[x, y].GetComponent<RectTransform>());
-    //    }
-    //}
-
-
     public void NextMove()
     {
         //PopupCellsOfCurrentPlayer();
         turn++;
-        
+
         if (turn >= 5)
         {
             List<Cell> winCells = CheckWinner();
             if (winCells != null)
             {
-                SmoothAnimation.Instance.PlayWinAnimation(winCells);
+                Animations.Instance.PlayWinAnimation(winCells);
 
                 UIManager.Instance.ShowWin(currentPlayer);
                 return;
@@ -126,15 +189,19 @@ public class GameManager : MonoBehaviour
                 return;
             }
         }
-        
+
         currentPlayer = (currentPlayer == TicTacPlayer.Player1) ? TicTacPlayer.Player2 : TicTacPlayer.Player1;
         UIManager.Instance.UpdatePlayerTurn(currentPlayer);
 
-        // check cp ai or not
-        if (currentMode == GameMode.PlayerVsAI && currentPlayer == aiPlayer)
+        // check curent player ai or not
+        if (currentMode == GameMode.PlayerVsAI && aiPlayer != TicTacPlayer.none)
         {
-            StartCoroutine(AIManager.Instance.WaitAndNextMove());
+            if (currentPlayer == aiPlayer)
+            {
+                StartCoroutine(AIManager.Instance.WaitAndNextMove());
+            }
         }
+
     }
     internal int[] ConvertBoardToIntArray()
     {
@@ -144,6 +211,7 @@ public class GameManager : MonoBehaviour
         for (int x = 0; x < 3; x++)
             for (int y = 0; y < 3; y++)
             {
+                board[index] = (int)gridCells[x, y].player;
                 switch (gridCells[x, y].player)
                 {
                     case TicTacPlayer.Player1: board[index] = 1; break;
@@ -154,37 +222,17 @@ public class GameManager : MonoBehaviour
             }
         return board;
     }
-    //public List<Cell> GetCellsForPlayer(TicTacPlayer player)
-    //{
-    //    int playerValue = (player == TicTacPlayer.Player1) ? 1 : 2;
-    //    int[] board = ConvertBoardToIntArray();
-
-    //    List<Cell> cells = new List<Cell>();
-
-    //    for (int i = 0; i < board.Length; i++)
-    //    {
-    //        if (board[i] == playerValue)
-    //        {
-    //            int x = i / 3;
-    //            int y = i % 3;
-    //            cells.Add(gridCells[x, y]);
-    //        }
-    //    }
-
-    //    return cells;
-    //}
 
     private List<Cell> CheckWinner()
     {
         int[] board = ConvertBoardToIntArray();
         int playerVal = (currentPlayer == TicTacPlayer.Player1) ? 1 : 2;
 
-        // Winning combinations (rows, columns, diagonals)
         int[][] wins =
         {
-            new[] {0, 1, 2}, new[] {3, 4, 5}, new[] {6, 7, 8}, 
-            new[] {0, 3, 6}, new[] {1, 4, 7}, new[] {2, 5, 8}, 
-            new[] {0, 4, 8}, new[] {2, 4, 6}                  
+            new[] {0, 1, 2}, new[] {3, 4, 5}, new[] {6, 7, 8},
+            new[] {0, 3, 6}, new[] {1, 4, 7}, new[] {2, 5, 8},
+            new[] {0, 4, 8}, new[] {2, 4, 6}
         };
 
         foreach (var line in wins)
@@ -201,46 +249,19 @@ public class GameManager : MonoBehaviour
                     int y = index % 3;
                     winCells.Add(gridCells[x, y]);
                 }
-
+                Animations.Instance.PopupActive = false;
                 return winCells;
             }
         }
         return null;
     }
-    //// Row check
-    //for (int r = 0; r < 3; r++)
-    //    if (gridCells[r, 0].player == currentPlayer &&
-    //        gridCells[r, 1].player == currentPlayer &&
-    //        gridCells[r, 2].player == currentPlayer)
-    //        return true;
-
-    //// Column check
-    //for (int c = 0; c < 3; c++)
-    //    if (gridCells[0, c].player == currentPlayer &&
-    //        gridCells[1, c].player == currentPlayer &&
-    //        gridCells[2, c].player == currentPlayer)
-    //        return true;
-
-    //// Diagonals
-    //if (gridCells[0, 0].player == currentPlayer &&
-    //    gridCells[1, 1].player == currentPlayer &&
-    //    gridCells[2, 2].player == currentPlayer)
-    //    return true;
-
-    //if (gridCells[0, 2].player == currentPlayer &&
-    //    gridCells[1, 1].player == currentPlayer &&
-    //    gridCells[2, 0].player == currentPlayer)
-    //    return true;
-
-
-
     //TODO :create distroy cell
     internal void RestartGame()
     {
         StartNewGame();
-
-        turn = 0;
-        //currentPlayer = TicTacPlayer.Player1;
+        ResetBoardOnly();
+        //turn = 0;
+        ////currentPlayer = TicTacPlayer.Player1;
 
         UIManager.Instance.HideWinPanel();
 
@@ -248,9 +269,14 @@ public class GameManager : MonoBehaviour
         {
             cell.ResetCell();
         }
-        SmoothAnimation.Instance.isGlowing = false; 
+        Animations.Instance.StopGlow();
         UIManager.Instance.UpdatePlayerTurn(currentPlayer);
-        //UIManager.Instance.ShowModePanel();
+        //UIManager.Instance.OpenGamePanel();
+    }
+    public void BackToLobby()
+    {
+        if (PhotonNetwork.InRoom) PhotonNetwork.LeaveRoom();
+        UIManager.Instance.ShowLobby();
     }
 
     internal void ResetBoardOnly()
@@ -262,6 +288,51 @@ public class GameManager : MonoBehaviour
                     gridCells[x, y].ResetCell();
     }
 }
+//// Row check
+//for (int r = 0; r < 3; r++)
+//    if (gridCells[r, 0].player == currentPlayer &&
+//        gridCells[r, 1].player == currentPlayer &&
+//        gridCells[r, 2].player == currentPlayer)
+//        return true;
+
+//// Column check
+//for (int c = 0; c < 3; c++)
+//    if (gridCells[0, c].player == currentPlayer &&
+//        gridCells[1, c].player == currentPlayer &&
+//        gridCells[2, c].player == currentPlayer)
+//        return true;
+
+//// Diagonals
+//if (gridCells[0, 0].player == currentPlayer &&
+//    gridCells[1, 1].player == currentPlayer &&
+//    gridCells[2, 2].player == currentPlayer)
+//    return true;
+
+//if (gridCells[0, 2].player == currentPlayer &&
+//    gridCells[1, 1].player == currentPlayer &&
+//    gridCells[2, 0].player == currentPlayer)
+//    return true;
+
+
+//public List<Cell> GetCellsForPlayer(TicTacPlayer player)
+//{
+//    int playerValue = (player == TicTacPlayer.Player1) ? 1 : 2;
+//    int[] board = ConvertBoardToIntArray();
+
+//    List<Cell> cells = new List<Cell>();
+
+//    for (int i = 0; i < board.Length; i++)
+//    {
+//        if (board[i] == playerValue)
+//        {
+//            int x = i / 3;
+//            int y = i % 3;
+//            cells.Add(gridCells[x, y]);
+//        }
+//    }
+
+//    return cells;
+//}
 //// Rows
 //for (int i = 0; i < gridCells.GetLength(0); i++)
 //{

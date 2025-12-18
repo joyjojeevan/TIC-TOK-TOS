@@ -31,8 +31,6 @@ public class AIManager : MonoBehaviour
         }
         else Destroy(gameObject);
     }
-
-
     public int GetAIMove(int[] board)
     {
         switch (difficulty)
@@ -41,7 +39,6 @@ public class AIManager : MonoBehaviour
             case AIDifficulty.Medium: return GetMove_Minimax(board ,3);
             case AIDifficulty.Hard: return GetMove_Minimax(board, 9);
         }
-
         return -1;
     }
     internal IEnumerator WaitAndNextMove()
@@ -54,36 +51,57 @@ public class AIManager : MonoBehaviour
 
         int[] board = GameManager.Instance.ConvertBoardToIntArray();
 
-        bool boardEmpty = true;
+        //bool boardEmpty = true;
+        //for (int i = 0; i < 9; i++)
+        //{
+        //    if (board[i] != 0) { boardEmpty = false; break; }
+        //}
+
+        int moveIndex =-1;
+
+        bool isFirstMove = true;
+
+        //if (boardEmpty )
+        //{
+        //    //// pick any empty cell at random
+        //    List<int> empty = new List<int>();
+        //    for (int i = 0; i < 9; i++) if (board[i] == 0) empty.Add(i);
+        //    //moveIndex = empty[UnityEngine.Random.Range(0, empty.Count)];
+        //    moveIndex = 4;
+        //    //center
+        //    //if (board[4] == 0) empty.Add(4);
+        //}
         for (int i = 0; i < 9; i++)
         {
-            if (board[i] != 0) { boardEmpty = false; break; }
+            if (board[i] != 0) { isFirstMove = false; break; }
         }
 
-        int moveIndex;
-        if (boardEmpty)
+        if (isFirstMove)
         {
-            //// pick any empty cell at random
-            List<int> empty = new List<int>();
-            for (int i = 0; i < 9; i++) if (board[i] == 0) empty.Add(i);
-            moveIndex = empty[UnityEngine.Random.Range(0, empty.Count)];
-
-            //center
-            //if (board[4] == 0) empty.Add(4);
+            // First move: Choose the center (index 4) for optimal strategy
+            moveIndex = 4;
         }
         else
         {
             moveIndex = GetAIMove(board);
         }
 
-        moveIndex = GetAIMove(board);
+        //moveIndex = GetAIMove(board);
         if (moveIndex >= 0)
         {
             int x = moveIndex / 3;
             int y = moveIndex % 3;
             GameManager.Instance.gridCells[x, y].OnClickCell();
+            GameManager.Instance.gridCells[x, y].ExecuteMove(GameManager.Instance.aiPlayer);
+
+        }
+        else
+        {
+            // This should only happen if the board is full (Draw), which is caught by GameManager.
+            Debug.LogWarning("AI could not find a valid move.");
         }
     }
+
     #region AI_Easy
     public int GetMove_Easy(int[] board)
     {
@@ -99,6 +117,7 @@ public class AIManager : MonoBehaviour
         return empty[UnityEngine.Random.Range(0, empty.Count)];
     }
     #endregion
+    #region Minimax and Used GetMove (For Get Medium or Hard)
     //get best move from minimax logic
     private int GetMove_Minimax(int[] boardVal, int maxDepth)
     {
@@ -112,7 +131,7 @@ public class AIManager : MonoBehaviour
                 boardVal[i] = Player_AI;
                 int moveVal = Minimax_AlphaBeta(boardVal, 0, false , maxDepth, int.MinValue, int.MaxValue);
                 boardVal[i] = 0;
-                Debug.Log("position :" + i + "move val" +moveVal);
+                //Debug.Log("position :" + i + "move val" +moveVal);
                 if (moveVal > bestVal)
                 {
                     bestVal = moveVal;
@@ -176,6 +195,7 @@ public class AIManager : MonoBehaviour
             return best;
         }
     }
+    #endregion
     // find left moves
     private bool MovesLeft(int[] boardVal)
     {
