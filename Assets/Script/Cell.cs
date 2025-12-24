@@ -34,7 +34,7 @@ public class Cell : MonoBehaviourPun
             if (NetworkManager.Instance.IsMyTurn)
             {
                 // We tell the GameManager to send the move to everyone
-                GameManager.Instance.SendNetworkMove(cellPos.x, cellPos.y);
+                NetworkManager.Instance.SendNetworkMove(cellPos.x, cellPos.y);
             }
         }
         else if (GameManager.Instance.currentMode == GameMode.PlayerVsAI)
@@ -77,21 +77,23 @@ public class Cell : MonoBehaviourPun
         cellImage.rectTransform.localScale = Vector3.one;
         //GetComponent<RectTransform>().localScale = Vector3.one;
     }
-    [PunRPC]
-    // The RPC must take the position and the player role
-    void NetworkPlayMove(int x, int y, int playerInt)
-    {
-        // Use the received coordinates to ensure the correct cell processes the RPC
-        // Although the RPC is sent from the Cell itself, this is a good safety measure.
-        if (this.cellPos.x != x || this.cellPos.y != y) return;
+    //Centralized(GameManager) ( GameManager finds the cell ,Calls ExecuteMove() )
+    //Distributed (Cell RPC)  ( All cells receive the RPC ,Only the matching cell responds )
+    //    [PunRPC]
+    //// The RPC must take the position and the player role
+    //void NetworkPlayMove(int x, int y, int playerInt)
+    //{
+    //    // Use the received coordinates to ensure the correct cell processes the RPC
+    //    // Although the RPC is sent from the Cell itself, this is a good safety measure.
+    //    if (this.cellPos.x != x || this.cellPos.y != y) return;
 
-        // Check if the cell is already occupied (shouldn't happen with correct turn sync)
-        if (this.player != TicTacPlayer.none) return;
+    //    // Check if the cell is already occupied (shouldn't happen with correct turn sync)
+    //    if (this.player != TicTacPlayer.none) return;
 
-        TicTacPlayer p = (TicTacPlayer)playerInt;
+    //    TicTacPlayer p = (TicTacPlayer)playerInt;
 
-        // Execute the visual and game state update
-        ExecuteMove(p);
-    }
+    //    // Execute the visual and game state update
+    //    ExecuteMove(p);
+    //}
 
 }

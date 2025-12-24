@@ -46,6 +46,11 @@ MonoBehaviour:
   - OnGameEnd
   - RPC_StartNetworkGame
   - RPC_SyncMove
+  - RPC_RequestRematch
+  - RPC_SyncRematch
+  - RPC_SetPlayerReady
+  - RPC_RefreshWaitingNames
+  - RPC_SetReadyState
   DisableAutoOpenWizard: 1
   ShowSettings: 1
   DevRegionSetOnce: 1

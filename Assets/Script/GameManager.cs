@@ -69,11 +69,6 @@ public class GameManager : MonoBehaviourPun
         {
             Debug.LogError("GameManager needs a PhotonView component!");
         }
-        //currentPlayer = TicTacPlayer.Player1;
-        //UIManager.Instance.ShowModePanel();
-        //UIManager.Instance.ShowModePanel();
-        //UIManager.Instance.UpdatePlayerTurn(currentPlayer);
-
     }
     private void StartNetworkGameFlow()
     {
@@ -100,24 +95,12 @@ public class GameManager : MonoBehaviourPun
             UIManager.Instance.ShowWaitingForOpponent();
         }
     }
-    public void SendNetworkMove(int x, int y)
-    {
-        // This sends the instruction to EVERYONE in the room
-        photonView.RPC("RPC_SyncMove", RpcTarget.All, x, y, (int)currentPlayer);
-    }
-    [PunRPC]
-    public void RPC_SyncMove(int x, int y, int playerInt)
-    {
-        TicTacPlayer p = (TicTacPlayer)playerInt;
-        // Find the cell at X, Y and execute the move visually
-        gridCells[x, y].ExecuteMove(p);
-        Debug.Log($"Network Move Received: {x},{y} by Player {p}");
-    }
+    // TODO ;change to net work maneger and call here
 
-    public void SetGameMode(GameMode mode)
-    {
-        currentMode = mode;
-    }
+    //public void SetGameMode(GameMode mode)
+    //{
+    //    currentMode = mode;
+    //}
 
     internal void InitGridCells(Cell cell)
     {
@@ -139,16 +122,6 @@ public class GameManager : MonoBehaviourPun
         {
             aiPlayer = (Random.Range(0, 2) == 0) ? TicTacPlayer.Player1 : TicTacPlayer.Player2;
             UIManager.Instance.SetupAIPlayerUI();
-            //if (aiPlayer == TicTacPlayer.Player1)
-            //{
-            //    UIManager.Instance.player1Text.text = "AI (X)";
-            //    UIManager.Instance.player2Text.text = "You (O)";
-            //}
-            //else
-            //{
-            //    UIManager.Instance.player1Text.text = "You (X)";
-            //    UIManager.Instance.player2Text.text = "AI (O)";
-            //}
         }
 
         else if(currentMode == GameMode.PlayerVsPlayer)

@@ -31,6 +31,13 @@ public class UIManager : MonoBehaviour
     [SerializeField] private Button buttonAI;
     [SerializeField] private Button buttonPVN;
 
+    [Header("Set Name Panel")]
+    [SerializeField] private GameObject NamePanel;
+    public TMP_InputField playerNameInput;
+    [SerializeField] private Button buttonEnter;
+
+
+
     [Header("select difuculty")]
     [SerializeField] private GameObject difficultyPanel;
     [SerializeField] private TMP_Dropdown difficultyDropdown;
@@ -49,14 +56,33 @@ public class UIManager : MonoBehaviour
     [SerializeField] private GameObject networkSetupPanel;
     [SerializeField] private GameObject publicRoomPanel;
     [SerializeField] private GameObject privateRoomPanel;
-    [SerializeField] private TMP_Text statusText; 
+    [SerializeField] private TMP_Text statusText;
     //[SerializeField] private Button joinRoomButton;
 
     [Header("Network Room UI")]
+    public TMP_Text playerName;
     [SerializeField] private TMP_InputField roomIDInput;
     [SerializeField] private Button quickPlayBtn;
     [SerializeField] private Button createPrivateBtn;
     [SerializeField] private Button joinPrivateBtn;
+
+    [Header("Rematch UI")]
+    public Button rematchButton;
+    public GameObject rematchPromptPanel;
+    public TMP_Text rematchText;
+
+    [Header("Waiting Room UI")]
+    public GameObject waitingPanel;
+    public TMP_Text roomIDDisplay; 
+    public Button cancelSearchBtn;
+    public Button masterStartButton;
+
+    [Header("Networking UI")]
+    public Button readyButton;
+    public TMP_Text p1NameWaiting;
+    public TMP_Text p2NameWaiting;
+    public TMP_Text p1ReadyStatus; 
+    public TMP_Text p2ReadyStatus;
 
     #endregion
     private Color activeColor = new Color(1f, 1f, 0.5f);
@@ -69,25 +95,40 @@ public class UIManager : MonoBehaviour
     {
         buttonPVP.onClick.AddListener(() => StartLocalGame(GameMode.PlayerVsPlayer));
         buttonAI.onClick.AddListener(ShowAIDifficulty);
-        buttonPVN.onClick.AddListener(ShowNetworkSetup);
-        //joinRoomButton.onClick.AddListener(() => NetworkManager.Instance.JoinRandomMatch());
+        buttonPVN.onClick.AddListener(SetName);
+        buttonEnter.onClick.AddListener(ShowNetworkSetup);
+
 
         difficultyDropdown.onValueChanged.AddListener(OnDifficultySelected);
         startGameButton.onClick.AddListener(() => StartLocalGame(GameMode.PlayerVsAI));
 
         quickPlayBtn.onClick.AddListener(() => NetworkManager.Instance.JoinRandomMatch());
 
-        createPrivateBtn.onClick.AddListener(() => {
-            NetworkManager.Instance.CreatePrivateRoom(roomIDInput.text);});
-        joinPrivateBtn.onClick.AddListener(() => {
-            NetworkManager.Instance.JoinPrivateRoom(roomIDInput.text); });
-
-        //joinRoomButton.interactable = false; // Disable until we are ready
-        //joinRoomButton.onClick.AddListener(OnJoinRoomClicked);
+        createPrivateBtn.onClick.AddListener(() =>
+        {
+            NetworkManager.Instance.CreatePrivateRoom(roomIDInput.text);
+        });
+        joinPrivateBtn.onClick.AddListener(() =>
+        {
+            NetworkManager.Instance.JoinPrivateRoom(roomIDInput.text);
+        });
 
         backToModePanel.onClick.AddListener(() => OnBackButtonClicked());
 
-        restartButton.onClick.AddListener(GameManager.Instance.RestartGame);
+        cancelSearchBtn.onClick.AddListener(() => OnCancelButtonClicked());
+        rematchButton.onClick.AddListener(() => OnRematchClicked());
+
+        readyButton.onClick.AddListener(() => {
+            NetworkManager.Instance.ClickReady();
+            readyButton.interactable = false; // Player can't un-ready for now
+        });
+
+        masterStartButton.onClick.AddListener(() => {
+            NetworkManager.Instance.MasterClickStart();
+        });
+        // Initially hide the prompt
+        if (rematchPromptPanel != null) rematchPromptPanel.SetActive(false);
+
         ShowLobby();
     }
     private void Update()
@@ -120,28 +161,36 @@ public class UIManager : MonoBehaviour
     #region SetUp PlayerUI
     internal void SetupNetworkPlayerUI()
     {
+        string hostName = PhotonNetwork.MasterClient.NickName;
+
+        // Find the guest name safely
+        string guestName = "Opponent";
+        foreach (Player p in PhotonNetwork.PlayerList)
+        {
+            if (!p.IsMasterClient) guestName = p.NickName;
+        }
         if (NetworkManager.Instance.myPlayer == TicTacPlayer.Player1)
         {
-            UIManager.Instance.player1Text.text = "You (X)";
-            UIManager.Instance.player2Text.text = "Opponent (O)";
+            player1Text.text = "You (X)";
+            player2Text.text = "Opponent (O)";
         }
         else
         {
-            UIManager.Instance.player1Text.text = "Opponent (X)";
-            UIManager.Instance.player2Text.text = "You (O)";
+            player1Text.text = "Opponent (X)";
+            player2Text.text = "You (O)";
         }
     }
     internal void SetupAIPlayerUI()
     {
         if (GameManager.Instance.aiPlayer == TicTacPlayer.Player1)
         {
-            UIManager.Instance.player1Text.text = "AI (X)";
-            UIManager.Instance.player2Text.text = "You (O)";
+            player1Text.text = "AI (X)";
+            player2Text.text = "You (O)";
         }
         else
         {
-            UIManager.Instance.player1Text.text = "You (X)";
-            UIManager.Instance.player2Text.text = "AI (O)";
+            player1Text.text = "You (X)";
+            player2Text.text = "AI (O)";
         }
     }
     #endregion
@@ -158,13 +207,38 @@ public class UIManager : MonoBehaviour
         difficultyPanel.SetActive(true);
         backToPlayWithPanel.onClick.AddListener(ShowModePanel);
     }
-
-    public void ShowNetworkSetup()
+    public void ShowWaitingRoom(string roomName)
     {
-        modeSelectionPanel.SetActive(false);
-        networkSetupPanel.SetActive(true);
-    }
+        HideAllMenuPanels();
+        lobbyPanel.SetActive(false);
 
+        waitingPanel.SetActive(true);
+
+        roomIDDisplay.text = "ROOM ID: " + roomName;
+        ShowStatusMessage("Waiting for an opponent to join...");
+        readyButton.interactable = true;
+        masterStartButton.gameObject.SetActive(false);
+        UpdateReadyVisuals(false, false);
+        //if (PhotonNetwork.IsMasterClient)
+        //{
+        //    masterStartButton.gameObject.SetActive(true);
+        //    statusText.text = "Wait for opponent, then click Start.";
+        //}
+        //else
+        //{
+        //    // The Guest cannot see the button
+        //    masterStartButton.gameObject.SetActive(false);
+        //    statusText.text = "Waiting for Host to start the game...";
+        //}
+    }
+    public void UpdateReadyVisuals(bool p1Ready, bool p2Ready)
+    {
+        p1ReadyStatus.text = p1Ready ? "P1: READY" : "P1: WAITING...";
+        p1ReadyStatus.color = p1Ready ? Color.green : Color.white;
+
+        p2ReadyStatus.text = p2Ready ? "P2: READY" : "P2: WAITING...";
+        p2ReadyStatus.color = p2Ready ? Color.green : Color.white;
+    }
     private void StartLocalGame(GameMode mode)
     {
         GameManager.Instance.currentMode = mode;
@@ -179,6 +253,20 @@ public class UIManager : MonoBehaviour
         gamePanel.SetActive(true);
         winPanel.SetActive(false);
     }
+    public void SetName()
+    {
+        NetworkManager.Instance.SetPlayerNickname();
+        NamePanel.SetActive(true);
+        modeSelectionPanel.SetActive(false);
+       // playerName.text = NetworkManager.Instance.SetPlayerNickname();
+    }
+    public void ShowNetworkSetup()
+    {
+        NetworkManager.Instance.ConnectToPhoton();
+        NamePanel.SetActive(false);
+        networkSetupPanel.SetActive(true);
+        NetworkManager.Instance.SetPlayerNickname();
+    }
 
     public void ShowStatusMessage(string msg) => statusText.text = msg;
     private void HideAllMenuPanels()
@@ -188,47 +276,86 @@ public class UIManager : MonoBehaviour
         if (networkSetupPanel != null) networkSetupPanel.SetActive(false);
         if (winPanel != null) winPanel.SetActive(false);
     }
-
-    //private void OnClickPVP()
-    //{
-    //    GameManager.Instance.SetGameMode(GameMode.PlayerVsPlayer);
-    //    // We assume GameManager is Persistent, so we just load the scene
-    //    SceneManager.LoadScene("Game");
-    //}
-
-    //private void OnClickPVAI()
-    //{
-    //    GameManager.Instance.SetGameMode(GameMode.PlayerVsAI);
-    //    SceneManager.LoadScene("Game");
-    //    // Difficulty selection is handled in the Game scene UI.
-    //    modeSelectionPanel.SetActive(false);
-    //    difficultyPanel.SetActive(true);
-    //}
-
-    //private void OnClickPVNetwork()
-    //{
-    //    GameManager.Instance.SetGameMode(GameMode.PlayerVsNetwork);
-    //    modeSelectionPanel.SetActive(false);
-    //    networkSetupPanel.SetActive(true);
-    //    // Show status based on the current Photon state (from OnPhotonLobbyReady)
-    //}
-
-    private void OnJoinRoomClicked()
+    public void UpdateWaitingRoomNames()
     {
-        if (NetworkManager.Instance != null && PhotonNetwork.IsConnectedAndReady)
+        // Clear the texts first
+        p1NameWaiting.text = "Waiting...";
+        p2NameWaiting.text = "Waiting...";
+
+        Player[] players = PhotonNetwork.PlayerList;
+        // Loop through all players currently in the room
+        foreach (Player p in players)
         {
-            NetworkManager.Instance.JoinRandomMatch();
-            //joinRoomButton.interactable = false;
+            if (p.IsMasterClient)
+            {
+                p1NameWaiting.text = p.NickName + " (Host)";
+            }
+            else
+            {
+                // If there is a second player, they are the guest
+                p2NameWaiting.text = p.NickName + " (Guest)";
+            }
+        }
+    }
+    public void OnRematchClicked()
+    {
+        if (GameManager.Instance.currentMode == GameMode.PlayerVsNetwork)
+        {
+            NetworkManager.Instance.RequestRematch();
+            Animations.Instance.StopGlow();
+            rematchButton.interactable = false; // Prevent double clicking
+        }
+        else
+        {
+            // Local or AI mode just restarts immediately
+            GameManager.Instance.RestartGame();
         }
     }
 
-    //private void OnStartGameClicked()
-    //{
-    //    // Used to start the AI game after difficulty selection
-    //    HideAllMenuPanels();
-    //    GameManager.Instance.StartNewGame();
-    //}
+    public void ShowRematchPrompt(string message)
+    {
+        if (rematchPromptPanel != null) rematchPromptPanel.SetActive(true);
+        rematchText.text = message;
+        // Change Rematch button color or text to "Accept?"
+        rematchButton.GetComponentInChildren<TMP_Text>().text = "Accept Rematch";
+        rematchButton.onClick.RemoveAllListeners();
+        rematchButton.onClick.AddListener(() => NetworkManager.Instance.AcceptRematch());
+    }
 
+    public void HandleOpponentLeft()
+    {
+        // Disable the rematch button because there is no one to play with
+        rematchButton.interactable = false;
+        rematchText.text = "Opponent left the room.";
+    }
+    public void UpdateRematchStatus(string message)
+    {
+        if (rematchText != null)
+        {
+            rematchText.text = message;
+            rematchText.color = Color.red; // Optional: make it stand out
+        }
+
+        // Disable the rematch button since no one is there to accept
+        if (rematchButton != null)
+        {
+            rematchButton.interactable = false;
+        }
+    }
+    // Inside UIManager.cs
+    public void ResetRematchUI()
+    {
+        rematchButton.interactable = true;
+        rematchButton.GetComponentInChildren<TMP_Text>().text = "Rematch";
+        if (rematchPromptPanel != null) rematchPromptPanel.SetActive(false);
+
+        // Reset the listener to the original "Request" function
+        rematchButton.onClick.RemoveAllListeners();
+        rematchButton.onClick.AddListener(() => OnRematchClicked());
+
+        GameManager.Instance.RestartGame();
+
+    }
     private void OnDifficultySelected(int index)
     {
         AIManager.Instance.difficulty = (AIDifficulty)index;
@@ -253,17 +380,13 @@ public class UIManager : MonoBehaviour
             ShowLobby();
         }
     }
-    //public void HidePublicRoomPanel()
-    //{
-    //    publicRoomPanel.SetActive(false);
-    //}
-    //public void HidePrivateRoomPanel()
-    //{
-    //    privateRoomPanel.SetActive(false);
-    //}
-
-
-
+    private void OnCancelButtonClicked()
+    {
+            NetworkManager.Instance.LeaveRoom();
+            waitingPanel.SetActive(false);
+            lobbyPanel.SetActive(true);
+        
+    }
     public void UpdatePlayerTurn(TicTacPlayer player)
     {
         if (player1Image == null || player2Image == null) return;
@@ -303,10 +426,13 @@ public class UIManager : MonoBehaviour
 
     public void HideWinPanel()
     {
+        //GameManager.Instance.RestartGame();
         winPanel.SetActive(false);
+        //ResetRematchUI();
     }
 
     #endregion
+}
 
     //private void OnStartGameClicked()
     //{
@@ -410,4 +536,4 @@ public class UIManager : MonoBehaviour
     //    difficultyPanel.SetActive(false);
 
     //}
-}
+
