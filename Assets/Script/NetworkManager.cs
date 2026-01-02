@@ -18,7 +18,7 @@ public class NetworkManager : MonoBehaviourPunCallbacks
     {
         Instance = this;
     }
-    // safe disconnect
+    // safe disconnect / prevent player
     private void OnApplicationQuit()
     {
         if (PhotonNetwork.IsConnected)
@@ -41,42 +41,24 @@ public class NetworkManager : MonoBehaviourPunCallbacks
     }
     /* *Join lobby* */
     public override void OnJoinedLobby() => UIManager.Instance.OnPhotonLobbyReady();
-    /* Game Logic */
-    #region network logic 
-    //broadcasts the move to ALL players
-    public void SendNetworkMove(int x, int y)
-    {
-        // This sends the instruction to EVERYONE in the room
-        photonView.RPC("RPC_SyncMove", RpcTarget.All, x, y, (int)GameManager.Instance.currentPlayer);
-    }
-    //resive the moves
-    [PunRPC]
-    public void RPC_SyncMove(int x, int y, int playerInt)
-    {
-        TicTacPlayer Player = (TicTacPlayer)playerInt;
-        // Find the cell at X, Y and execute the move visually
-        GameManager.Instance.gridCells[x, y].ExecuteMove(Player);
-        Debug.Log($"Network Move Received: {x},{y} by Player {Player}");
-    }
-    #endregion
 
     // Quick Play
     #region Quickplay
-    public void JoinRandomMatch()
-    {
-        //SetPlayerNickname();
+    //public void JoinRandomMatch()
+    //{
+    //    //SetPlayerNickname();
 
-        PhotonNetwork.JoinRandomRoom();
-        UIManager.Instance.ShowStatusMessage("Searching for a room...");
-        //UIManager.Instance.HidePrivateRoomPanel();
-    }
+    //    PhotonNetwork.JoinRandomRoom();
+    //    UIManager.Instance.ShowStatusMessage("Searching for a room...");
+    //    //UIManager.Instance.HidePrivateRoomPanel();
+    //}
 
-    public override void OnJoinRandomFailed(short returnCode, string message)
-    {
-        RoomOptions options = new RoomOptions { MaxPlayers = 2 };
-        PhotonNetwork.CreateRoom(null, options);
-        UIManager.Instance.ShowStatusMessage("Waiting for opponent...");
-    }
+    //public override void OnJoinRandomFailed(short returnCode, string message)
+    //{
+    //    RoomOptions options = new RoomOptions { MaxPlayers = 2 };
+    //    PhotonNetwork.CreateRoom(null, options);
+    //    UIManager.Instance.ShowStatusMessage("Waiting for opponent...");
+    //}
     #endregion
     // private rooms
     #region Private room
@@ -102,11 +84,10 @@ public class NetworkManager : MonoBehaviourPunCallbacks
     #region Room Management
     /* waiting room logic */
     public override void OnJoinedRoom()
-    { 
-        // Get the name of the room we just joined (Random or Private)
+    {
         string currentRoomName = PhotonNetwork.CurrentRoom.Name;
 
-        // Tell the UI to show the waiting room with this ID
+        // show the waiting room with this ID
         UIManager.Instance.ShowWaitingRoom(currentRoomName);
 
         bool isRoomFull = PhotonNetwork.CurrentRoom.PlayerCount == 2;
@@ -223,30 +204,7 @@ public class NetworkManager : MonoBehaviourPunCallbacks
             UIManager.Instance.ShowStatusMessage("Leaving room...");
         }
     }
-    public void CancelSearch()
-    {
-        // If we are currently trying to join or search, just stop.
-        // Photon doesn't have a "StopSearch" function, so we simply Leave the Lobby or disconnect.
-        if (PhotonNetwork.InLobby)
-        {
-            // This stops the lobby updates and essentially "cancels" your readiness to join
-            PhotonNetwork.LeaveLobby();
-        }
 
-        UIManager.Instance.ShowLobby(); // Return to your main menu UI
-        //UIManager.Instance.ShowStatusMessage("Search Cancelled.");
-    }
-    public void StopSearchAndHost()
-    {
-        // You don't need to call a "Stop" command; calling CreateRoom 
-        // will override the previous JoinRandom request.
-        string customRoomID = UnityEngine.Random.Range(1000, 9999).ToString();
-
-        RoomOptions options = new RoomOptions { MaxPlayers = 2, IsVisible = true };
-        PhotonNetwork.CreateRoom(customRoomID, options);
-
-        //UIManager.Instance.ShowStatusMessage("Stopped search. Room Created: " + customRoomID);
-    }
     //Call this when the "Rematch" button is clicked
     public void RequestRematch()
     {
@@ -307,7 +265,7 @@ public class NetworkManager : MonoBehaviourPunCallbacks
 
         isP1Ready = false;
         isP2Ready = false;
-        //TODO: check cure3nt player  == Other player or not
+        //TODO: check curent player  == Other player or not
         UIManager.Instance.ShowStatusMessage(otherPlayer.NickName + " left the game.");
         UIManager.Instance.ShowOpponentLeftPanel(otherPlayer.NickName);
 
@@ -359,11 +317,60 @@ public class NetworkManager : MonoBehaviourPunCallbacks
         }
     }
     #endregion
+    /* Game Logic */
+    #region network logic 
+    //broadcasts the move to ALL players
+    public void SendNetworkMove(int x, int y)
+    {
+        // This sends the instruction to EVERYONE in the room
+        photonView.RPC("RPC_SyncMove", RpcTarget.All, x, y, (int)GameManager.Instance.currentPlayer);
+    }
+    //resive the moves
+    [PunRPC]
+    public void RPC_SyncMove(int x, int y, int playerInt)
+    {
+        TicTacPlayer Player = (TicTacPlayer)playerInt;
+        // Find the cell at X, Y and execute the move visually
+        GameManager.Instance.gridCells[x, y].ExecuteMove(Player);
+        Debug.Log($"Network Move Received: {x},{y} by Player {Player}");
+    }
+    #endregion
+    //public void CancelSearch()
+    //{
+    //    // If we are currently trying to join or search, just stop.
+    //    // Photon doesn't have a "StopSearch" function, so we simply Leave the Lobby or disconnect.
+    //    if (PhotonNetwork.InLobby)
+    //    {
+    //        // This stops the lobby updates and essentially "cancels" your readiness to join
+    //        PhotonNetwork.LeaveLobby();
+    //    }
+
+    //    UIManager.Instance.ShowLobby(); // Return to your main menu UI
+    //    //UIManager.Instance.ShowStatusMessage("Search Cancelled.");
+    //}
+    //public void StopSearchAndHost()
+    //{
+    //    // You don't need to call a "Stop" command; calling CreateRoom 
+    //    // will override the previous JoinRandom request.
+    //    string customRoomID = UnityEngine.Random.Range(1000, 9999).ToString();
+
+    //    RoomOptions options = new RoomOptions { MaxPlayers = 2, IsVisible = true };
+    //    PhotonNetwork.CreateRoom(customRoomID, options);
+
+    //    //UIManager.Instance.ShowStatusMessage("Stopped search. Room Created: " + customRoomID);
+    //}
+
 }
 //RPC = Remote Procedure Call  -> Call this function on ALL players’ games at the same time.
+    // If something must happen on both screens → RPC
+    //If local only → normal method
 //[PunRPC] -> This function is allowed to be called over the network.
 //Master Server ≠ Master Client
 
 //Master Server = Photon backend
 
 //Lobby = where rooms are listed / matched
+/*
+ * MonoBehaviourPunCallbacks → allows Photon callbacks (OnJoinedRoom, etc.)
+ * 
+ */

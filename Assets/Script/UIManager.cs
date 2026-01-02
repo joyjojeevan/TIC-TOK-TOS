@@ -46,7 +46,7 @@ public class UIManager : MonoBehaviour
     [Header("Buttons")]
     [SerializeField] private Button restartButton;
     [SerializeField] private RectTransform restartButtonAni;
-    [SerializeField] private Button changeMode;
+    
 
     [Header("Back Buttons")]
     [SerializeField] private Button backToPlayWithPanel;
@@ -104,7 +104,7 @@ public class UIManager : MonoBehaviour
         difficultyDropdown.onValueChanged.AddListener(OnDifficultySelected);
         startGameButton.onClick.AddListener(() => StartLocalGame(GameMode.PlayerVsAI));
 
-        quickPlayBtn.onClick.AddListener(() => NetworkManager.Instance.JoinRandomMatch());
+        //quickPlayBtn.onClick.AddListener(() => NetworkManager.Instance.JoinRandomMatch());
 
         createPrivateBtn.onClick.AddListener(() =>
         {
@@ -218,7 +218,7 @@ public class UIManager : MonoBehaviour
         waitingPanel.SetActive(true);
 
         roomIDDisplay.text = "ROOM ID: " + roomName;
-        ShowStatusMessage("Waiting for an opponent to join...");
+        //ShowStatusMessage("Waiting for an opponent to join...");
         readyButton.interactable = true;
         masterStartButton.gameObject.SetActive(false);
         UpdateReadyVisuals(false, false);
@@ -465,8 +465,8 @@ public class UIManager : MonoBehaviour
         }
         if (rematchButton != null)
             rematchButton.gameObject.SetActive(false);
-        if (changeMode != null)
-            changeMode.gameObject.SetActive(true);
+        //if (changeMode != null)
+        //    changeMode.gameObject.SetActive(true);
     }
     public void ResetInputFields()
     {
@@ -489,106 +489,4 @@ public class UIManager : MonoBehaviour
     #endregion
 }
 
-    //private void OnStartGameClicked()
-    //{
-    //    difficultyPanel.SetActive(false);
-    //    modeSelectionPanel.SetActive(false);
-    //    GameManager.Instance.RestartGame();
-    //}
-    //private void OnDifficultySelected(int index)
-    //{
-    //    AIManager.Instance.difficulty = (AIDifficulty)index;
-    //}
-    //private void OnChangeMode()
-    //{
-    //    winPanel.SetActive(false);
-    //    modeSelectionPanel.SetActive(true);
-    //    ShowModePanel();
-    //}
-    //private void OnClickPVP()
-    //{
-    //    GameManager.Instance.SetGameMode(GameMode.PlayerVsPlayer);
-    //    GameManager.Instance.RestartGame();
-    //    SceneManager.LoadScene("Game");
-    //    modeSelectionPanel.SetActive(false);
-    //    startGameButton.gameObject.SetActive(true);
-    //}
-    //private void OnClickPVAI()
-    //{
-    //    PlayWith.SetActive(false);
-    //    GameManager.Instance.SetGameMode(GameMode.PlayerVsAI);
-    //    SceneManager.LoadScene("Game");
-    //    difficultyPanel.SetActive(true);
-    //    backToPlayWithPanel.onClick.AddListener(ShowPlayWithPanel);
-    //    startGameButton.gameObject.SetActive(true);
-    //}
-    //private void OnClickPVNetwork()
-    //{
-    //    GameManager.Instance.SetGameMode(GameMode.PlayerVsNetwork);
-
-    //    // Load Photon flow (Lobby / Room scene)
-    //    SceneManager.LoadScene("Lobby");
-    //}
-
-    //public void UpdatePlayerTurn(TicTacPlayer player)
-    //{
-    //    // Null checks for UI elements
-    //    if (player1Image == null || player2Image == null)
-    //    {
-    //        Debug.LogWarning("Player images not assigned in UIManager!");
-    //        return;
-    //    }
-
-    //    if (player == TicTacPlayer.Player1)
-    //    {
-    //        player1Image.color = activeColor;
-    //        player2Image.color = normalColor;
-    //        //smoothAnimation.PlayPopup(player1Panel);
-    //        //Animations.Instance.PlayPopup(player1Panel);
-    //    }
-    //    else
-    //    {
-    //        player2Image.color = activeColor;
-    //        player1Image.color = normalColor;
-    //        //smoothAnimation.PlayPopup(player2Panel);
-    //        //Animations.Instance.PlayPopup(player2Panel);
-    //    }
-
-    //    if (modeSelectionPanel != null)
-    //    {
-    //        modeSelectionPanel.SetActive(false);
-    //    }
-    //}
-    //public void ShowWin(TicTacPlayer player)
-    //{
-    //    winPanel.SetActive(true);
-    //    string pName = (player == TicTacPlayer.Player1) ? player1Text.text: player2Text.text;
-    //    winText.text = $"{pName} WINS!";
-    //    AudioManager.Instance.PlaySound(SoundType.Win);
-    //    Animations.Instance.PlayPopup(restartButtonAni);
-    //}
-
-    //public void ShowDraw()
-    //{
-    //    winPanel.SetActive(true);
-    //    winText.text = "DRAW!";
-    //    AudioManager.Instance.PlaySound(SoundType.Draw);
-    //    Animations.Instance.PlayPopup(restartButtonAni);
-    //}
-
-    //public void HideWinPanel()
-    //{
-    //    winPanel.SetActive(false);
-    //}
-    //public void ShowModePanel()
-    //{
-    //    modeSelectionPanel.SetActive(true);
-    //    PlayWith.SetActive(true);
-    //}
-    //public void ShowPlayWithPanel()
-    //{
-    //    PlayWith.SetActive(true);
-    //    difficultyPanel.SetActive(false);
-
-    //}
-
+    
