@@ -2,6 +2,7 @@
 using Photon.Realtime;
 using Unity.VisualScripting;
 using UnityEngine;
+using UnityEngine.InputSystem.LowLevel;
 using UnityEngine.Timeline;
 
 public class NetworkManager : MonoBehaviourPunCallbacks
@@ -108,6 +109,9 @@ public class NetworkManager : MonoBehaviourPunCallbacks
         // Tell the UI to show the waiting room with this ID
         UIManager.Instance.ShowWaitingRoom(currentRoomName);
 
+        bool isRoomFull = PhotonNetwork.CurrentRoom.PlayerCount == 2;
+        UIManager.Instance.SetReadyButtonVisibility(isRoomFull);
+
         photonView.RPC("RPC_RefreshWaitingNames", RpcTarget.All);
 
         if (PhotonNetwork.CurrentRoom.PlayerCount < 2)
@@ -125,6 +129,8 @@ public class NetworkManager : MonoBehaviourPunCallbacks
         // When the 2nd player joins, the Master Client tells everyone to START
         if (PhotonNetwork.IsMasterClient && PhotonNetwork.CurrentRoom.PlayerCount == 2)
         {
+            UIManager.Instance.SetReadyButtonVisibility(true);
+            //UIManager.Instance.readyButton.SetActive(true);
             UIManager.Instance.UpdateWaitingRoomNames();
             //photonView.RPC("RPC_StartNetworkGame", RpcTarget.All);
             UIManager.Instance.ShowStatusMessage("Opponent Joined! You can now start.");
@@ -143,10 +149,11 @@ public class NetworkManager : MonoBehaviourPunCallbacks
             // Default name if they leave it empty
             name = "Player_" + Random.Range(100, 999);
         }
+        name = name.ToUpper();
         PhotonNetwork.NickName = name;
         
         //PhotonNetwork.LocalPlayer.NickName = name;
-        UIManager.Instance.playerName.text = name;
+        UIManager.Instance.playerName.text =" Hi " + name;
     }
     [PunRPC]
     void RPC_RefreshWaitingNames()
@@ -161,14 +168,17 @@ public class NetworkManager : MonoBehaviourPunCallbacks
     }
     //It runs on both players
     [PunRPC]
-    void RPC_StartNetworkGame()
+    void RPC_StartNetworkGame(int startingPlayerIndex)
     {
         GameManager.Instance.currentMode = GameMode.PlayerVsNetwork;
 
         AssignPlayerRole();
+        //random starter
+        TicTacPlayer starter = (startingPlayerIndex == 0) ? TicTacPlayer.Player1 : TicTacPlayer.Player2;
+
         UIManager.Instance.waitingPanel.SetActive(false);
         UIManager.Instance.OpenGamePanel(); // Switch UI panels
-        GameManager.Instance.StartNewGame();
+        GameManager.Instance.StartNewGame(starter);
         UIManager.Instance.SetupNetworkPlayerUI();
     }
     /* ready state */
@@ -176,23 +186,33 @@ public class NetworkManager : MonoBehaviourPunCallbacks
     {
         // Send RPC to everyone telling them I am ready
         bool amIHost = PhotonNetwork.IsMasterClient;
-        photonView.RPC("RPC_SetReadyState", RpcTarget.All, amIHost);
+
+        bool currentStatus = amIHost ? isP1Ready : isP2Ready;
+        bool nextStatus = !currentStatus;
+
+        photonView.RPC("RPC_SetReadyState", RpcTarget.All, amIHost, nextStatus);
     }
 
     [PunRPC]
-    void RPC_SetReadyState(bool isHost)
+    void RPC_SetReadyState(bool isHost, bool newState)
     {
-        if (isHost) isP1Ready = true;
-        else isP2Ready = true;
+        if (isHost) isP1Ready = newState;
+        else isP2Ready = newState;
 
         // Update the labels in the UI
         UIManager.Instance.UpdateReadyVisuals(isP1Ready, isP2Ready);
-
+        if (isHost == PhotonNetwork.IsMasterClient)
+        {
+            UIManager.Instance.UpdateReadyButtonText(newState);
+        }
         // Check if we should show the Start Button to the Master
         if (PhotonNetwork.IsMasterClient)
         {
             // Only show Start button if BOTH are ready
-            UIManager.Instance.masterStartButton.gameObject.SetActive(isP1Ready && isP2Ready);
+            bool bothReady = isP1Ready && isP2Ready;
+            bool roomFull = PhotonNetwork.CurrentRoom.PlayerCount == 2;
+
+            UIManager.Instance.masterStartButton.gameObject.SetActive(bothReady && roomFull);
         }
     }
     public void LeaveRoom()
@@ -227,22 +247,27 @@ public class NetworkManager : MonoBehaviourPunCallbacks
 
         //UIManager.Instance.ShowStatusMessage("Stopped search. Room Created: " + customRoomID);
     }
-    // 1. Call this when the "Rematch" button is clicked
+    //Call this when the "Rematch" button is clicked
     public void RequestRematch()
     {
-        photonView.RPC("RPC_RequestRematch", RpcTarget.Others);
+        if (PhotonNetwork.CurrentRoom.PlayerCount < 2)
+        {
+            UIManager.Instance.UpdateRematchStatus("Opponent has left. Cannot rematch.");
+            return;
+        }
+        photonView.RPC("RPC_RequestRematch", RpcTarget.Others, PhotonNetwork.NickName);
         UIManager.Instance.ShowStatusMessage("Rematch request sent...");
     }
 
     [PunRPC]
-    void RPC_RequestRematch()
+    void RPC_RequestRematch(string senderName)
     {
         // Show the message to the other player
-        UIManager.Instance.ShowRematchPrompt("Opponent wants to play again!");
+        UIManager.Instance.ShowRematchPrompt($"{senderName} wants a rematch!");
         Animations.Instance.StopGlow();
     }
 
-    // 2. Call this when the other player accepts the rematch
+    //Call this when the other player accepts the rematch
     public void AcceptRematch()
     {
         photonView.RPC("RPC_SyncRematch", RpcTarget.All);
@@ -252,38 +277,69 @@ public class NetworkManager : MonoBehaviourPunCallbacks
     [PunRPC]
     void RPC_SyncRematch()
     {
+        UIManager.Instance.rematchPromptPanel.SetActive(false);
+        UIManager.Instance.winPanel.SetActive(false);
         // Reset the game for everyone
         GameManager.Instance.StartNewGame();
+        UIManager.Instance.ResetRematchUI();
+        if (PhotonNetwork.IsMasterClient)
+        {
+            int nextStarter = UnityEngine.Random.Range(0, 2);
+            photonView.RPC("RPC_FinalizeRematch", RpcTarget.All, nextStarter);
+        }
+
+        UIManager.Instance.ShowStatusMessage("Rematch Started!");
+    }
+    [PunRPC]
+    void RPC_FinalizeRematch(int starterIndex)
+    {
+        TicTacPlayer starter = (starterIndex == 0) ? TicTacPlayer.Player1 : TicTacPlayer.Player2;
+        GameManager.Instance.StartNewGame(starter);
+        UIManager.Instance.ResetRematchUI();
     }
 
-
-    // 3. Handle when a player leaves the room
+    // Handle when a player leaves the room
     public override void OnPlayerLeftRoom(Player otherPlayer)
     {
+        photonView.RPC("RPC_RefreshWaitingNames", RpcTarget.All);
+
+        UIManager.Instance.SetReadyButtonVisibility(false);
+
         isP1Ready = false;
         isP2Ready = false;
+        //TODO: check cure3nt player  == Other player or not
+        UIManager.Instance.ShowStatusMessage(otherPlayer.NickName + " left the game.");
+        UIManager.Instance.ShowOpponentLeftPanel(otherPlayer.NickName);
 
         UIManager.Instance.UpdateWaitingRoomNames();
-        // If we are in the middle of a game or on the win screen
+
+        //GameManager.Instance.IsGameOver = true;
+        //  middle of a game or on the win screen
         if (GameManager.Instance.IsGameOver)
         {
-            // Update the specific rematch text you requested
             UIManager.Instance.UpdateRematchStatus("Opponent has left the room.");
+            UIManager.Instance.rematchButton.interactable = false;
         }
         else
         {
-            // If they left during the game, you can also show it here
             UIManager.Instance.ShowStatusMessage("Opponent disconnected.");
         }
         UIManager.Instance.HandleOpponentLeft();
+        UIManager.Instance.ResetReadyState();
     }
 
     // This callback triggers when you successfully leave
     public override void OnLeftRoom()
     {
-        Debug.Log("Left Room Successfully");
+        isP1Ready = false;
+        isP2Ready = false;
+        Debug.Log("Left Room Successfully And Reset inputs");
+
+        UIManager.Instance.ResetInputFields();
         // Show the lobby again when back at the main server
         UIManager.Instance.ShowLobby();
+        //UIManager.Instance.OpenGamePanel();
+        UIManager.Instance.ResetReadyState();
     }
 
     public void MasterClickStart()
@@ -293,7 +349,8 @@ public class NetworkManager : MonoBehaviourPunCallbacks
         {
             if (PhotonNetwork.CurrentRoom.PlayerCount == 2)
             {
-                photonView.RPC("RPC_StartNetworkGame", RpcTarget.All);
+                int startingPlayerIndex = UnityEngine.Random.Range(0, 2);
+                photonView.RPC("RPC_StartNetworkGame", RpcTarget.All, startingPlayerIndex);
             }
             else
             {

@@ -12,7 +12,7 @@ public class UIManager : MonoBehaviour
     [Header("Panels")]
     public GameObject lobbyPanel;
     public GameObject gamePanel;
-    [SerializeField] private GameObject winPanel;
+    public GameObject winPanel;
     [SerializeField] private TMP_Text winText;
 
 
@@ -87,6 +87,8 @@ public class UIManager : MonoBehaviour
     #endregion
     private Color activeColor = new Color(1f, 1f, 0.5f);
     private Color normalColor = Color.white;
+
+    private bool isReady = false;
     private void Awake()
     {
         Instance = this;
@@ -120,7 +122,7 @@ public class UIManager : MonoBehaviour
 
         readyButton.onClick.AddListener(() => {
             NetworkManager.Instance.ClickReady();
-            readyButton.interactable = false; // Player can't un-ready for now
+            //readyButton.interactable = false; // Player can't un-ready for now
         });
 
         masterStartButton.onClick.AddListener(() => {
@@ -157,6 +159,7 @@ public class UIManager : MonoBehaviour
         modeSelectionPanel.SetActive(true);
         difficultyPanel.SetActive(false);
         networkSetupPanel.SetActive(false);
+        NamePanel.SetActive(false);
     }
     #region SetUp PlayerUI
     internal void SetupNetworkPlayerUI()
@@ -239,6 +242,35 @@ public class UIManager : MonoBehaviour
         p2ReadyStatus.text = p2Ready ? "P2: READY" : "P2: WAITING...";
         p2ReadyStatus.color = p2Ready ? Color.green : Color.white;
     }
+    public void UpdateReadyButtonText(bool isReady)
+    {
+        TMP_Text btnText = readyButton.GetComponentInChildren<TMP_Text>();
+        if (btnText != null)
+        {
+            btnText.text = isReady ? "NOT READY" : "READY";
+            readyButton.image.color = isReady ? Color.red : Color.green;
+        }
+    }
+    public void ResetReadyButton()
+    {
+        TMP_Text btnText = readyButton.GetComponentInChildren<TMP_Text>();
+        btnText.text = "READY";
+        readyButton.image.color = Color.green;
+        readyButton.interactable = true;
+    }
+    public void ResetReadyState()
+    {
+        isReady = false;
+       //readyButton.SetActive(false);
+    }
+    public void SetReadyButtonVisibility(bool visible)
+    {
+        if (readyButton != null)
+        {
+            readyButton.gameObject.SetActive(visible);
+        }
+    }
+
     private void StartLocalGame(GameMode mode)
     {
         GameManager.Instance.currentMode = mode;
@@ -278,12 +310,10 @@ public class UIManager : MonoBehaviour
     }
     public void UpdateWaitingRoomNames()
     {
-        // Clear the texts first
         p1NameWaiting.text = "Waiting...";
         p2NameWaiting.text = "Waiting...";
 
         Player[] players = PhotonNetwork.PlayerList;
-        // Loop through all players currently in the room
         foreach (Player p in players)
         {
             if (p.IsMasterClient)
@@ -292,7 +322,6 @@ public class UIManager : MonoBehaviour
             }
             else
             {
-                // If there is a second player, they are the guest
                 p2NameWaiting.text = p.NickName + " (Guest)";
             }
         }
@@ -303,11 +332,10 @@ public class UIManager : MonoBehaviour
         {
             NetworkManager.Instance.RequestRematch();
             Animations.Instance.StopGlow();
-            rematchButton.interactable = false; // Prevent double clicking
+            rematchButton.interactable = false;
         }
         else
         {
-            // Local or AI mode just restarts immediately
             GameManager.Instance.RestartGame();
         }
     }
@@ -316,7 +344,7 @@ public class UIManager : MonoBehaviour
     {
         if (rematchPromptPanel != null) rematchPromptPanel.SetActive(true);
         rematchText.text = message;
-        // Change Rematch button color or text to "Accept?"
+        // Change Rematch button text 
         rematchButton.GetComponentInChildren<TMP_Text>().text = "Accept Rematch";
         rematchButton.onClick.RemoveAllListeners();
         rematchButton.onClick.AddListener(() => NetworkManager.Instance.AcceptRematch());
@@ -324,7 +352,7 @@ public class UIManager : MonoBehaviour
 
     public void HandleOpponentLeft()
     {
-        // Disable the rematch button because there is no one to play with
+        // Disable the rematch button
         rematchButton.interactable = false;
         rematchText.text = "Opponent left the room.";
     }
@@ -333,23 +361,21 @@ public class UIManager : MonoBehaviour
         if (rematchText != null)
         {
             rematchText.text = message;
-            rematchText.color = Color.red; // Optional: make it stand out
+            rematchText.color = Color.red; 
         }
 
-        // Disable the rematch button since no one is there to accept
         if (rematchButton != null)
         {
             rematchButton.interactable = false;
         }
     }
-    // Inside UIManager.cs
     public void ResetRematchUI()
     {
         rematchButton.interactable = true;
         rematchButton.GetComponentInChildren<TMP_Text>().text = "Rematch";
         if (rematchPromptPanel != null) rematchPromptPanel.SetActive(false);
 
-        // Reset the listener to the original "Request" function
+        // Reset Request function
         rematchButton.onClick.RemoveAllListeners();
         rematchButton.onClick.AddListener(() => OnRematchClicked());
 
@@ -391,7 +417,7 @@ public class UIManager : MonoBehaviour
     {
         if (player1Image == null || player2Image == null) return;
 
-        // UI color updates... (existing logic)
+        // UI color updates
         if (player == TicTacPlayer.Player1)
         {
             player1Image.color = activeColor;
@@ -406,14 +432,13 @@ public class UIManager : MonoBehaviour
         }
     }
 
-    // ... (ShowWin, ShowDraw, HideWinPanel, RestartGame logic remain the same)
+    // (ShowWin, ShowDraw, HideWinPanel, RestartGame logic remain the same)
     public void ShowWin(TicTacPlayer player)
     {
         winPanel.SetActive(true);
         string pName = (player == TicTacPlayer.Player1) ? player1Text.text : player2Text.text;
         winText.text = $"{pName} WINS!";
         AudioManager.Instance.PlaySound(SoundType.Win);
-        //Animations.Instance.PlayPopup(restartButtonAni);
     }
 
     public void ShowDraw()
@@ -421,7 +446,6 @@ public class UIManager : MonoBehaviour
         winPanel.SetActive(true);
         winText.text = "DRAW!";
         AudioManager.Instance.PlaySound(SoundType.Draw);
-        //Animations.Instance.PlayPopup(restartButtonAni);
     }
 
     public void HideWinPanel()
@@ -429,6 +453,37 @@ public class UIManager : MonoBehaviour
         //GameManager.Instance.RestartGame();
         winPanel.SetActive(false);
         //ResetRematchUI();
+    }
+    public void ShowOpponentLeftPanel(string opponentName)
+    {
+        if (winPanel != null)
+            winPanel.SetActive(true);
+        if (winText != null)
+        {
+            winText.text = opponentName + " LEFT THE ROOM";
+            winText.color = Color.red;
+        }
+        if (rematchButton != null)
+            rematchButton.gameObject.SetActive(false);
+        if (changeMode != null)
+            changeMode.gameObject.SetActive(true);
+    }
+    public void ResetInputFields()
+    {
+        if (roomIDInput != null)
+        {
+            roomIDInput.text = "";
+        }
+        if (playerNameInput != null)
+        {
+            playerNameInput.text = "";
+        }
+        if (playerName != null)
+        {
+            playerName.text = "Enter Name...";
+        }
+
+        PhotonNetwork.NickName = "";
     }
 
     #endregion

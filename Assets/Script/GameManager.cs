@@ -111,11 +111,12 @@ public class GameManager : MonoBehaviourPun
         return currentPlayer;
     }
 
-    public void StartNewGame()
+    public void StartNewGame(TicTacPlayer startingPlayer = TicTacPlayer.Player1)
     {
         IsGameOver = false;
         turn = 0;
-        currentPlayer = TicTacPlayer.Player1;
+        //currentPlayer = TicTacPlayer.Player1;
+        currentPlayer = startingPlayer;
         ResetBoardOnly();
         UIManager.Instance.HideWinPanel();
         if (currentMode == GameMode.PlayerVsAI)
@@ -127,15 +128,10 @@ public class GameManager : MonoBehaviourPun
         else if(currentMode == GameMode.PlayerVsPlayer)
         {
             aiPlayer = TicTacPlayer.none;
-
-            //UIManager.Instance.player1Text.text = "Player 1 (X)";
-            //UIManager.Instance.player2Text.text = "Player 2 (O)";
         }
         Debug.Log(aiPlayer);
 
-        //currentPlayer = TicTacPlayer.Player1;
         Animations.Instance.PopupActive = true;
-        //ResetBoardOnly();
         UIManager.Instance.UpdatePlayerTurn(currentPlayer);
 
         if (currentPlayer == aiPlayer && currentMode == GameMode.PlayerVsAI)
