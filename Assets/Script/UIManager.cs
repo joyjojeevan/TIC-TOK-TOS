@@ -84,6 +84,10 @@ public class UIManager : MonoBehaviour
     public TMP_Text p1ReadyStatus; 
     public TMP_Text p2ReadyStatus;
 
+    [Header("Alert UI")]
+    public GameObject alertPanel; 
+    public TMP_Text alertText;
+
     #endregion
     private Color activeColor = new Color(1f, 1f, 0.5f);
     private Color normalColor = Color.white;
@@ -130,6 +134,7 @@ public class UIManager : MonoBehaviour
         });
         // Initially hide the prompt
         if (rematchPromptPanel != null) rematchPromptPanel.SetActive(false);
+        roomIDInput.onValueChanged.AddListener(delegate { ClearAlertOnType(); });
 
         ShowLobby();
     }
@@ -140,6 +145,14 @@ public class UIManager : MonoBehaviour
             Debug.Log("Screen Touched!");
             // If you see this in your mobile log (using Logcat or a screen logger), 
             // the hardware is fine; the UI is just blocking the raycast.
+        }
+    }
+    public void ClearAlertOnType()
+    {
+        // If the user starts typing again, assume they are fixing the error
+        if (alertPanel != null && alertPanel.activeSelf)
+        {
+            alertPanel.SetActive(false);
         }
     }
     // Called by NetworkManager when connection and lobby join is complete
@@ -154,6 +167,8 @@ public class UIManager : MonoBehaviour
     }
     public void ShowLobby()
     {
+        if (alertPanel != null) alertPanel.SetActive(false);
+
         lobbyPanel.SetActive(true);
         gamePanel.SetActive(false);
         modeSelectionPanel.SetActive(true);
@@ -253,10 +268,18 @@ public class UIManager : MonoBehaviour
     }
     public void ResetReadyButton()
     {
-        TMP_Text btnText = readyButton.GetComponentInChildren<TMP_Text>();
-        btnText.text = "READY";
-        readyButton.image.color = Color.green;
-        readyButton.interactable = true;
+        if (readyButton != null)
+        {
+            TMP_Text btnText = readyButton.GetComponentInChildren<TMP_Text>();
+            if (btnText != null)  btnText.text = "READY";
+            readyButton.image.color = Color.green;
+            readyButton.interactable = true;
+
+            UpdateReadyVisuals(false, false);
+
+            // Hide master start button
+            if (masterStartButton != null) masterStartButton.gameObject.SetActive(false);
+        }
     }
     public void ResetReadyState()
     {
@@ -268,6 +291,7 @@ public class UIManager : MonoBehaviour
         if (readyButton != null)
         {
             readyButton.gameObject.SetActive(visible);
+            readyButton.image.color = Color.green;
         }
     }
 
@@ -484,6 +508,25 @@ public class UIManager : MonoBehaviour
         }
 
         PhotonNetwork.NickName = "";
+    }
+    public void ShowAlert(string message)
+    {
+        if (alertPanel != null)
+        {
+            alertPanel.SetActive(true);
+            alertText.text = message;
+        }
+        else
+        {
+            // Fallback to status message if you don't have a dedicated panel
+            ShowStatusMessage(message);
+        }
+    }
+
+    // Attach this to the "Close" button on your alert panel
+    public void CloseAlert()
+    {
+        if (alertPanel != null) alertPanel.SetActive(false);
     }
 
     #endregion

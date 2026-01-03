@@ -69,6 +69,17 @@ public class NetworkManager : MonoBehaviourPunCallbacks
         if (string.IsNullOrEmpty(roomID)) return;
         UIManager.Instance.ShowStatusMessage("Creating private room: " + roomID);
         //UIManager.Instance.HidePublicRoomPanel();
+        if (PhotonNetwork.NetworkClientState == ClientState.Joining ||
+        PhotonNetwork.NetworkClientState == ClientState.PeerCreated)
+        {
+            return;
+        }
+        if (PhotonNetwork.NetworkClientState == ClientState.Joining ||
+        PhotonNetwork.InRoom)
+        {
+            UIManager.Instance.ShowAlert("You are already joining a room!");
+            return;
+        }
         RoomOptions options = new RoomOptions { MaxPlayers = 2, IsVisible = false }; // Hidden from Quick Play
         PhotonNetwork.CreateRoom(roomID, options);
     }
@@ -95,16 +106,45 @@ public class NetworkManager : MonoBehaviourPunCallbacks
 
         photonView.RPC("RPC_RefreshWaitingNames", RpcTarget.All);
 
+        if (PhotonNetwork.IsMasterClient)
+        {
+            ResetRoomReadyProperties();
+        }
+
         if (PhotonNetwork.CurrentRoom.PlayerCount < 2)
             UIManager.Instance.ShowStatusMessage("Joined. Waiting for someone to join...");
     }
     public override void OnJoinRoomFailed(short returnCode, string message)
     {
-        UIManager.Instance.ShowStatusMessage("Join Failed: Room ID not found.");
+        //UIManager.Instance.ShowStatusMessage("Join Failed: Room ID not found.");
+        // Common Photon ReturnCodes:
+        // GameFull = 32767
+        // GameClosed = 32766
+        // GameDoesNotExist = 32758
+
+        Debug.Log($"Join Room Failed: {message} (Code: {returnCode})");
+
+        if (returnCode == ErrorCode.GameFull)
+        {
+            UIManager.Instance.ShowAlert("This room is already full!");
+        }
+        else if (returnCode == ErrorCode.GameDoesNotExist)
+        {
+            UIManager.Instance.ShowAlert("Room ID not found. Check the ID and try again.");
+        }
+        else
+        {
+            UIManager.Instance.ShowAlert("Could not join room: " + message);
+        }
     }
     /*Call from Master,A new player joins ,Total players = 2 ,Host says: “OK, start the game” , Sends RPC to everyone*/
     public override void OnPlayerEnteredRoom(Player newPlayer)
     {
+        if (PhotonNetwork.IsMasterClient)
+        {
+            // When a guest joins, reset both to NOT READY so they start fresh
+            ResetRoomReadyProperties();
+        }
         // Force a refresh for everyone when a new player walks in
         photonView.RPC("RPC_RefreshWaitingNames", RpcTarget.All);
         // When the 2nd player joins, the Master Client tells everyone to START
@@ -120,6 +160,20 @@ public class NetworkManager : MonoBehaviourPunCallbacks
     public override void OnPlayerPropertiesUpdate(Player targetPlayer, ExitGames.Client.Photon.Hashtable changedProps)
     {
         UIManager.Instance.UpdateWaitingRoomNames();
+    }
+    public override void OnCreateRoomFailed(short returnCode, string message)
+    {
+        // ErrorCode.ServerFull (32766) or common creation errors
+        Debug.Log($"Create Room Failed: {message}");
+
+        if (returnCode == ErrorCode.GameIdAlreadyExists)
+        {
+            UIManager.Instance.ShowAlert("Room ID already exists! Please choose a different ID or Join this one.");
+        }
+        else
+        {
+            UIManager.Instance.ShowAlert("Room Creation Failed: " + message);
+        }
     }
     /* *** Set player name ****/
     public void SetPlayerNickname()
@@ -166,12 +220,50 @@ public class NetworkManager : MonoBehaviourPunCallbacks
     public void ClickReady()
     {
         // Send RPC to everyone telling them I am ready
-        bool amIHost = PhotonNetwork.IsMasterClient;
+        //bool amIHost = PhotonNetwork.IsMasterClient;
 
-        bool currentStatus = amIHost ? isP1Ready : isP2Ready;
-        bool nextStatus = !currentStatus;
+        //bool currentStatus = amIHost ? isP1Ready : isP2Ready;
+        //bool nextStatus = !currentStatus;
 
-        photonView.RPC("RPC_SetReadyState", RpcTarget.All, amIHost, nextStatus);
+        //photonView.RPC("RPC_SetReadyState", RpcTarget.All, amIHost, nextStatus);
+        string key = PhotonNetwork.IsMasterClient ? "P1Ready" : "P2Ready";
+        bool currentState = false;
+
+        if (PhotonNetwork.CurrentRoom.CustomProperties.ContainsKey(key))
+        {
+            currentState = (bool)PhotonNetwork.CurrentRoom.CustomProperties[key];
+        }
+
+        bool nextState = !currentState;
+
+        // Save to Room Properties so everyone (including new joiners) sees it
+        ExitGames.Client.Photon.Hashtable props = new ExitGames.Client.Photon.Hashtable();
+        props.Add(key, nextState);
+        PhotonNetwork.CurrentRoom.SetCustomProperties(props);
+    }
+    public override void OnRoomPropertiesUpdate(ExitGames.Client.Photon.Hashtable propertiesThatChanged)
+    {
+        bool p1 = false;
+        bool p2 = false;
+
+        if (PhotonNetwork.CurrentRoom.CustomProperties.ContainsKey("P1Ready"))
+            p1 = (bool)PhotonNetwork.CurrentRoom.CustomProperties["P1Ready"];
+
+        if (PhotonNetwork.CurrentRoom.CustomProperties.ContainsKey("P2Ready"))
+            p2 = (bool)PhotonNetwork.CurrentRoom.CustomProperties["P2Ready"];
+
+        // Update UI Visuals for everyone
+        UIManager.Instance.UpdateReadyVisuals(p1, p2);
+
+        // Update the button text for the LOCAL player only
+        bool localReady = PhotonNetwork.IsMasterClient ? p1 : p2;
+        UIManager.Instance.UpdateReadyButtonText(localReady);
+
+        // Master Client: Show start button ONLY if both are true
+        if (PhotonNetwork.IsMasterClient)
+        {
+            UIManager.Instance.masterStartButton.gameObject.SetActive(p1 && p2 && PhotonNetwork.CurrentRoom.PlayerCount == 2);
+        }
     }
 
     [PunRPC]
@@ -259,6 +351,10 @@ public class NetworkManager : MonoBehaviourPunCallbacks
     // Handle when a player leaves the room
     public override void OnPlayerLeftRoom(Player otherPlayer)
     {
+        if (PhotonNetwork.IsMasterClient)
+        {
+            ResetRoomReadyProperties();
+        }
         photonView.RPC("RPC_RefreshWaitingNames", RpcTarget.All);
 
         UIManager.Instance.SetReadyButtonVisibility(false);
@@ -293,13 +389,25 @@ public class NetworkManager : MonoBehaviourPunCallbacks
         isP2Ready = false;
         Debug.Log("Left Room Successfully And Reset inputs");
 
+        UIManager.Instance.ResetReadyState();
+
         UIManager.Instance.ResetInputFields();
         // Show the lobby again when back at the main server
         UIManager.Instance.ShowLobby();
         //UIManager.Instance.OpenGamePanel();
         UIManager.Instance.ResetReadyState();
     }
+    private void ResetRoomReadyProperties()
+    {
+        if (PhotonNetwork.CurrentRoom == null) return;
 
+        ExitGames.Client.Photon.Hashtable resetProps = new ExitGames.Client.Photon.Hashtable
+        {
+            { "P1Ready", false },
+            { "P2Ready", false }
+        };
+        PhotonNetwork.CurrentRoom.SetCustomProperties(resetProps);
+    }
     public void MasterClickStart()
     {
         // Safety check: Only the Master can start, and only if there are 2 players
