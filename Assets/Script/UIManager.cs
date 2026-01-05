@@ -88,6 +88,12 @@ public class UIManager : MonoBehaviour
     public GameObject alertPanel; 
     public TMP_Text alertText;
 
+    [Header("Chat UI")]
+    public TMP_InputField chatInput; 
+    public TMP_Text chatDisplay;          
+    public GameObject chatPanel;
+    public Button chatBtn;
+
     #endregion
     private Color activeColor = new Color(1f, 1f, 0.5f);
     private Color normalColor = Color.white;
@@ -136,6 +142,7 @@ public class UIManager : MonoBehaviour
         if (rematchPromptPanel != null) rematchPromptPanel.SetActive(false);
         roomIDInput.onValueChanged.AddListener(delegate { ClearAlertOnType(); });
 
+        chatBtn.onClick.AddListener(() => { OnclickedChatBtn(); });
         ShowLobby();
     }
     private void Update()
@@ -145,6 +152,10 @@ public class UIManager : MonoBehaviour
             Debug.Log("Screen Touched!");
             // If you see this in your mobile log (using Logcat or a screen logger), 
             // the hardware is fine; the UI is just blocking the raycast.
+        }
+        if (chatPanel.activeSelf && Input.GetKeyDown(KeyCode.Return))
+        {
+            OnClickSendChat();
         }
     }
     public void ClearAlertOnType()
@@ -311,6 +322,8 @@ public class UIManager : MonoBehaviour
         backToModePanel.onClick.AddListener(ShowLobby);
         gamePanel.SetActive(true);
         winPanel.SetActive(false);
+        chatPanel.SetActive(false);
+        chatBtn.gameObject.SetActive(true);
     }
     public void SetName()
     {
@@ -466,6 +479,7 @@ public class UIManager : MonoBehaviour
         string pName = (player == TicTacPlayer.Player1) ? player1Text.text : player2Text.text;
         winText.text = $"{pName} WINS!";
         AudioManager.Instance.PlaySound(SoundType.Win);
+        HideChat();
     }
 
     public void ShowDraw()
@@ -473,8 +487,13 @@ public class UIManager : MonoBehaviour
         winPanel.SetActive(true);
         winText.text = "DRAW!";
         AudioManager.Instance.PlaySound(SoundType.Draw);
+        HideChat() ;
     }
-
+    public void HideChat()
+    {
+        chatPanel.SetActive(false);
+        chatBtn.gameObject.SetActive(false);
+    }
     public void HideWinPanel()
     {
         //GameManager.Instance.RestartGame();
@@ -483,6 +502,7 @@ public class UIManager : MonoBehaviour
     }
     public void ShowOpponentLeftPanel(string opponentName)
     {
+        HideChat();
         if (winPanel != null)
             winPanel.SetActive(true);
         if (winText != null)
@@ -525,13 +545,36 @@ public class UIManager : MonoBehaviour
             ShowStatusMessage(message);
         }
     }
-
-    // Attach this to the "Close" button on your alert panel
-    public void CloseAlert()
+    private void OnclickedChatBtn()
     {
-        if (alertPanel != null) alertPanel.SetActive(false);
+        chatPanel.SetActive(true);
+        chatBtn.gameObject.SetActive(false);
+    }
+    public void OnClickedBackChatBtn()
+    {
+        chatPanel.SetActive(false);
+        chatBtn.gameObject.SetActive(true);
+    }
+    public void OnClickSendChat()
+    {
+        string msg = chatInput.text;
+        NetworkManager.Instance.SendChatMessage(msg);
+
+        // Clear the input 
+        chatInput.text = "";
+        chatInput.ActivateInputField(); 
     }
 
+    public void DisplayChatMessage(string sender, string message)
+    {
+        string color = (sender == PhotonNetwork.NickName) ? "#32CD32" : "#1E90FF";
+        chatDisplay.text += $"\n<color={color}><b>{sender}:</b></color> {message}";
+        // TODO:Auto-scroll logic 
+        if (!chatPanel.activeSelf)
+        {
+            OnclickedChatBtn();
+        }
+    }
     #endregion
 }
 

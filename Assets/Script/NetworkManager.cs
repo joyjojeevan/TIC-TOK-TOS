@@ -170,8 +170,6 @@ public class NetworkManager : MonoBehaviourPunCallbacks
         if (returnCode == ErrorCode.GameIdAlreadyExists)
         {
             UIManager.Instance.ShowAlert("Room ID already exists! Please choose a different ID or Join this one.");
-            //PhotonNetwork.JoinRoom(PhotonNetwork.CurrentRoom.Name);
-            //PhotonNetwork.JoinRoom(UIManager.Instance.roomIDInput.text);
         }
         else
         {
@@ -306,6 +304,7 @@ public class NetworkManager : MonoBehaviourPunCallbacks
     {
         UIManager.Instance.rematchPromptPanel.SetActive(false);
         UIManager.Instance.winPanel.SetActive(false);
+        UIManager.Instance.chatBtn.gameObject.SetActive(true);
         // Reset the game for everyone
         GameManager.Instance.StartNewGame();
         UIManager.Instance.ResetRematchUI();
@@ -414,6 +413,24 @@ public class NetworkManager : MonoBehaviourPunCallbacks
             // No timer started, player stays in waiting room.
         }
     }
+    #endregion
+    #region Chat Logic
+    public void SendChatMessage(string message)
+    {
+        if (!string.IsNullOrWhiteSpace(message))
+        {
+            // Sends the message to everyone in the room, including yourself
+            photonView.RPC("RPC_ReceiveChat", RpcTarget.All, PhotonNetwork.NickName, message);
+        }
+    }
+
+    [PunRPC]
+    void RPC_ReceiveChat(string senderName, string message)
+    {
+        // Tells the UI Manager to display the message
+        UIManager.Instance.DisplayChatMessage(senderName, message);
+    }
+
     #endregion
     /* Game Logic */
     #region network logic 

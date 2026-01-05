@@ -252,7 +252,7 @@ TextureImporter:
       name: Start Game
       rect:
         serializedVersion: 2
-        x: 428
+        x: 430
         y: 987
         width: 359
         height: 121
@@ -534,6 +534,28 @@ TextureImporter:
       indices: 
       edges: []
       weights: []
+    - serializedVersion: 2
+      name: Send
+      rect:
+        serializedVersion: 2
+        x: 463
+        y: 1015
+        width: 65
+        height: 65
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 48537998a815e4f4e9a9de50282af06f
+      internalID: 1423722970
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
     outline: []
     customData: 
     physicsShape: []
@@ -560,6 +582,7 @@ TextureImporter:
       PlayOnline: -2437641907878207951
       Player Vs AI: 7596009504597310760
       Player Vs player: 1263356178324873439
+      Send: 1423722970
       Start Game: 6118373077376387338
       UIBUTTONS_13: -166072721082210712
       UIBUTTONS_3: 4049993744315311347
