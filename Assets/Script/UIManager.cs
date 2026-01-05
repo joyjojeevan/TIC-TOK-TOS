@@ -61,7 +61,7 @@ public class UIManager : MonoBehaviour
 
     [Header("Network Room UI")]
     public TMP_Text playerName;
-    [SerializeField] private TMP_InputField roomIDInput;
+    [SerializeField] public TMP_InputField roomIDInput;
     [SerializeField] private Button quickPlayBtn;
     [SerializeField] private Button createPrivateBtn;
     [SerializeField] private Button joinPrivateBtn;
@@ -158,6 +158,9 @@ public class UIManager : MonoBehaviour
     // Called by NetworkManager when connection and lobby join is complete
     public void OnPhotonLobbyReady()
     {
+        createPrivateBtn.interactable = true;
+        joinPrivateBtn.interactable = true;
+        ShowStatusMessage("Connected to Server. Ready to Play!");
         //joinRoomButton.interactable = true;
         if (buttonPVN != null)
         {
@@ -484,7 +487,7 @@ public class UIManager : MonoBehaviour
             winPanel.SetActive(true);
         if (winText != null)
         {
-            winText.text = opponentName + " LEFT THE ROOM";
+            winText.text = opponentName + " LEFT THE ROOM."+"Autometically Leave Room.";
             winText.color = Color.red;
         }
         if (rematchButton != null)
