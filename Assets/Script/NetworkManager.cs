@@ -74,8 +74,7 @@ public class NetworkManager : MonoBehaviourPunCallbacks
             UIManager.Instance.ShowAlert("Still connecting to server... please wait a moment.");
             return;
         }
-        if (PhotonNetwork.NetworkClientState == ClientState.Joining ||
-        PhotonNetwork.NetworkClientState == ClientState.PeerCreated)
+        if (PhotonNetwork.NetworkClientState == ClientState.Joining ||PhotonNetwork.NetworkClientState == ClientState.PeerCreated)
         {
             return;
         }
@@ -109,6 +108,8 @@ public class NetworkManager : MonoBehaviourPunCallbacks
         UIManager.Instance.SetReadyButtonVisibility(PhotonNetwork.CurrentRoom.PlayerCount == 2);
 
         photonView.RPC("RPC_RefreshWaitingNames", RpcTarget.All);
+
+        UIManager.Instance.ClearChat();
 
         if (PhotonNetwork.IsMasterClient)
         {
@@ -372,6 +373,7 @@ public class NetworkManager : MonoBehaviourPunCallbacks
         UIManager.Instance.ShowLobby();
         //UIManager.Instance.OpenGamePanel();
         UIManager.Instance.ResetReadyState();
+        UIManager.Instance.ClearChat();
     }
     private void ResetRoomReadyProperties()
     {

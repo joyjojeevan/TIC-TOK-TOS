@@ -4,6 +4,7 @@ using UnityEngine;
 using UnityEngine.SceneManagement;
 using Photon.Pun;
 using Photon.Realtime;
+using System.Collections;
 
 public class UIManager : MonoBehaviour
 {
@@ -89,10 +90,16 @@ public class UIManager : MonoBehaviour
     public TMP_Text alertText;
 
     [Header("Chat UI")]
+    public GameObject messageRowPrefab;
+    public Transform chatContent;
+    public ScrollRect chatScrollRect;
     public TMP_InputField chatInput; 
-    public TMP_Text chatDisplay;          
+    //public TMP_Text chatDisplay;          
     public GameObject chatPanel;
     public Button chatBtn;
+
+    [Header("Emoji Settings")]
+    public GameObject emojiPanel;
 
     #endregion
     private Color activeColor = new Color(1f, 1f, 0.5f);
@@ -155,7 +162,7 @@ public class UIManager : MonoBehaviour
         }
         if (chatPanel.activeSelf && Input.GetKeyDown(KeyCode.Return))
         {
-            OnClickSendChat();
+            //OnClickSendChat();
         }
     }
     public void ClearAlertOnType()
@@ -322,8 +329,12 @@ public class UIManager : MonoBehaviour
         backToModePanel.onClick.AddListener(ShowLobby);
         gamePanel.SetActive(true);
         winPanel.SetActive(false);
-        chatPanel.SetActive(false);
-        chatBtn.gameObject.SetActive(true);
+        HideChat();
+        if (GameManager.Instance.currentMode == GameMode.PlayerVsNetwork) 
+        {
+            chatPanel.SetActive(false);
+            chatBtn.gameObject.SetActive(true);
+        }
     }
     public void SetName()
     {
@@ -547,6 +558,7 @@ public class UIManager : MonoBehaviour
     }
     private void OnclickedChatBtn()
     {
+        Debug.Log("Step 1: Button Clicked");
         chatPanel.SetActive(true);
         chatBtn.gameObject.SetActive(false);
     }
@@ -557,23 +569,71 @@ public class UIManager : MonoBehaviour
     }
     public void OnClickSendChat()
     {
+        Debug.Log("Step 2: Sending RPC to Network");
         string msg = chatInput.text;
         NetworkManager.Instance.SendChatMessage(msg);
 
         // Clear the input 
         chatInput.text = "";
-        chatInput.ActivateInputField(); 
+        chatInput.ActivateInputField();
     }
 
     public void DisplayChatMessage(string sender, string message)
     {
-        string color = (sender == PhotonNetwork.NickName) ? "#32CD32" : "#1E90FF";
-        chatDisplay.text += $"\n<color={color}><b>{sender}:</b></color> {message}";
-        // TODO:Auto-scroll logic 
+        //Create the new message row
+        GameObject newRow = Instantiate(messageRowPrefab, chatContent);
+        TextMeshProUGUI txt = newRow.GetComponentInChildren<TextMeshProUGUI>();
+
+        if (txt == null)
+        {
+            Debug.LogError("CRITICAL: No Text component found on the Prefab! Check your MessageRow object.");
+            return;
+        }
+        if (sender == PhotonNetwork.NickName)
+        {
+            txt.alignment = TextAlignmentOptions.Right; // right side
+            txt.text = $"{message} :<b>You</b>";
+            txt.color = new Color(0.2f, 0.8f, 0.2f); 
+        }
+        else
+        {
+            txt.alignment = TextAlignmentOptions.Left; //left side
+            txt.text = $"<b>{sender}:</b> {message}";
+            txt.color = Color.white;
+        }
         if (!chatPanel.activeSelf)
         {
             OnclickedChatBtn();
         }
+
+        StartCoroutine(ScrollToBottom());
+    }
+    IEnumerator ScrollToBottom()
+    {
+        yield return new WaitForEndOfFrame();
+        chatScrollRect.verticalNormalizedPosition = 0f;
+    }
+    public void ToggleEmojiPanel()
+    {
+        emojiPanel.SetActive(!emojiPanel.activeSelf);
+    }
+
+    public void AddEmojiToInput(int emojiIndex)
+    {
+        // This creates a tag like <sprite index=0>
+        // TMPro will look at your "Emoji" asset and find the icon at that index
+        chatInput.text += $"<sprite index={emojiIndex}>";
+
+        // Keeps the keyboard/focus active so you can keep typing
+        chatInput.ActivateInputField();
+    }
+    public void ClearChat()
+    {
+        foreach (Transform child in chatContent)
+        {
+            Destroy(child.gameObject);
+        }
+        chatInput.text = "";
     }
     #endregion
 }

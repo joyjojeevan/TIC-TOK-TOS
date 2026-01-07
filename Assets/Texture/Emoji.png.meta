@@ -1,10 +1,19 @@
 fileFormatVersion: 2
-guid: e67e3f8bbc20b064c9a7995ebf2b59ac
+guid: e8e8ce3cacac7ba4fa832de4088decfa
 TextureImporter:
   internalIDToNameTable:
   - first:
-      213: -7443756053782179069
-    second: background_0
+      213: -2064567040605257521
+    second: Gemini_Generated_Image_xlgi89xlgi89xlgi-removebg-preview_0
+  - first:
+      213: -3143211656702248647
+    second: Gemini_Generated_Image_xlgi89xlgi89xlgi-removebg-preview_1
+  - first:
+      213: -6617251911767208836
+    second: Gemini_Generated_Image_xlgi89xlgi89xlgi-removebg-preview_2
+  - first:
+      213: -913652428610013092
+    second: Gemini_Generated_Image_xlgi89xlgi89xlgi-removebg-preview_3
   externalObjects: {}
   serializedVersion: 13
   mipmaps:
@@ -113,23 +122,111 @@ TextureImporter:
     serializedVersion: 2
     sprites:
     - serializedVersion: 2
-      name: background_0
+      name: emoji1
       rect:
         serializedVersion: 2
-        x: 0
-        y: 0
-        width: 1280
-        height: 1280
+        x: 17
+        y: 172
+        width: 94
+        height: 94
       alignment: 0
-      pivot: {x: 0, y: 0}
+      pivot: {x: 0.5, y: 0.5}
       border: {x: 0, y: 0, z: 0, w: 0}
       customData: 
       outline: []
       physicsShape: []
       tessellationDetail: -1
       bones: []
-      spriteID: 30356abce4772b890800000000000000
-      internalID: -7443756053782179069
+      spriteID: fc08eb1173f2953e0800000000000000
+      internalID: -2064567040605257521
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: emoji2
+      rect:
+        serializedVersion: 2
+        x: 110
+        y: 172
+        width: 94
+        height: 94
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 9393564d6a11164d0800000000000000
+      internalID: -3143211656702248647
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: emoji3
+      rect:
+        serializedVersion: 2
+        x: 204
+        y: 172
+        width: 93
+        height: 94
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: c7c47d9227cca24a0800000000000000
+      internalID: -6617251911767208836
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: emoji5
+      rect:
+        serializedVersion: 2
+        x: 390
+        y: 172
+        width: 93
+        height: 94
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: c58f688f4fd0253f0800000000000000
+      internalID: -913652428610013092
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: emoji4
+      rect:
+        serializedVersion: 2
+        x: 297
+        y: 172
+        width: 93
+        height: 94
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: b4f018df28e081c4ead3ddff45ccd8c1
+      internalID: 828394831
       vertices: []
       indices: 
       edges: []
@@ -138,7 +235,7 @@ TextureImporter:
     customData: 
     physicsShape: []
     bones: []
-    spriteID: 
+    spriteID: dcc05c066a91b95498d330ac969e7c76
     internalID: 0
     vertices: []
     indices: 
@@ -148,7 +245,11 @@ TextureImporter:
     spriteCustomMetadata:
       entries: []
     nameFileIdTable:
-      background_0: -7443756053782179069
+      emoji1: -2064567040605257521
+      emoji2: -3143211656702248647
+      emoji3: -6617251911767208836
+      emoji4: 828394831
+      emoji5: -913652428610013092
   mipmapLimitGroupName: 
   pSDRemoveMatte: 0
   userData: 
