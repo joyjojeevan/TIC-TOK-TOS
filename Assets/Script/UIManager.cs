@@ -101,6 +101,9 @@ public class UIManager : MonoBehaviour
     [Header("Emoji Settings")]
     public GameObject emojiPanel;
 
+    [Header("Confetti")]
+    public ParticleSystem confetti;
+
     #endregion
     private Color activeColor = new Color(1f, 1f, 0.5f);
     private Color normalColor = Color.white;
@@ -109,6 +112,7 @@ public class UIManager : MonoBehaviour
     private void Awake()
     {
         Instance = this;
+        confetti.Stop();
     }
     private void Start()
     {
@@ -151,6 +155,8 @@ public class UIManager : MonoBehaviour
 
         chatBtn.onClick.AddListener(() => { OnclickedChatBtn(); });
         ShowLobby();
+        
+
     }
     private void Update()
     {
@@ -196,6 +202,8 @@ public class UIManager : MonoBehaviour
         difficultyPanel.SetActive(false);
         networkSetupPanel.SetActive(false);
         NamePanel.SetActive(false);
+        confetti.Stop();
+
     }
     #region SetUp PlayerUI
     internal void SetupNetworkPlayerUI()
@@ -335,6 +343,7 @@ public class UIManager : MonoBehaviour
             chatPanel.SetActive(false);
             chatBtn.gameObject.SetActive(true);
         }
+        confetti.Stop();
     }
     public void SetName()
     {
@@ -389,6 +398,7 @@ public class UIManager : MonoBehaviour
         {
             GameManager.Instance.RestartGame();
         }
+        confetti.Stop();
     }
 
     public void ShowRematchPrompt(string message)
@@ -424,6 +434,7 @@ public class UIManager : MonoBehaviour
     {
         rematchButton.interactable = true;
         rematchButton.GetComponentInChildren<TMP_Text>().text = "Rematch";
+        Debug.Log("Rematch");
         if (rematchPromptPanel != null) rematchPromptPanel.SetActive(false);
 
         // Reset Request function
@@ -456,6 +467,7 @@ public class UIManager : MonoBehaviour
         {
             ShowLobby();
         }
+        confetti.Stop();
     }
     private void OnCancelButtonClicked()
     {
@@ -490,6 +502,7 @@ public class UIManager : MonoBehaviour
         string pName = (player == TicTacPlayer.Player1) ? player1Text.text : player2Text.text;
         winText.text = $"{pName} WINS!";
         AudioManager.Instance.PlaySound(SoundType.Win);
+        confetti.Play();
         HideChat();
     }
 
@@ -635,7 +648,11 @@ public class UIManager : MonoBehaviour
         }
         chatInput.text = "";
     }
-    #endregion
-}
+    public void FocusInput()
+    {
+        chatInput.ActivateInputField();
+    }
+        #endregion
+    }
 
     
