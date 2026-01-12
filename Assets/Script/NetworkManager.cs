@@ -328,6 +328,9 @@ public class NetworkManager : MonoBehaviourPunCallbacks
     // Handle when a player leaves the room
     public override void OnPlayerLeftRoom(Player otherPlayer)
     {
+        if (GameManager.Instance == null) return;
+        if (GameManager.Instance.IsGameOver) return;
+
         photonView.RPC("RPC_RefreshWaitingNames", RpcTarget.All);
         UIManager.Instance.UpdateWaitingRoomNames();
         if (UIManager.Instance.waitingPanel.activeSelf)
@@ -338,10 +341,13 @@ public class NetworkManager : MonoBehaviourPunCallbacks
                 PhotonNetwork.CurrentRoom.IsOpen = true;
                 PhotonNetwork.CurrentRoom.IsVisible = true;
             }
+            ScoreManager.Instance.AddWin();
+            UIManager.Instance.RefreshScoreUI();
 
             UIManager.Instance.SetReadyButtonVisibility(false);
             UIManager.Instance.ResetReadyState();
             UIManager.Instance.ShowStatusMessage(otherPlayer.NickName + " left the waiting room.");
+            //UIManager.Instance.UpdateStats(true);
         }
         else
         {
@@ -353,6 +359,8 @@ public class NetworkManager : MonoBehaviourPunCallbacks
             StartCoroutine(WaitAndLeave(5f));
         }
         UIManager.Instance.HandleOpponentLeft();
+        UIManager.Instance.RefreshScoreUI();
+        Animations.Instance.StopGlow();
     }
     private System.Collections.IEnumerator WaitAndLeave(float delay)
     {
@@ -433,6 +441,48 @@ public class NetworkManager : MonoBehaviourPunCallbacks
         UIManager.Instance.DisplayChatMessage(senderName, message);
     }
 
+    #endregion
+    #region network Score
+    public void HandleNetworkScore(TicTacPlayer winner)
+    {
+        if (!PhotonNetwork.IsMasterClient)
+            return;
+
+        photonView.RPC(
+            "RPC_DeclareWinner",
+            RpcTarget.All,
+            (int)winner
+        );
+    }
+    [PunRPC]
+    public void RPC_DeclareWinner(int winnerInt)
+    {
+        if (ScoreManager.Instance == null)
+        {
+            Debug.LogError("ScoreManager STILL NULL (Scene setup issue)");
+            return;
+        }
+
+        TicTacPlayer winner = (TicTacPlayer)winnerInt;
+
+        bool iWon;
+
+        if (GameManager.Instance.currentMode == GameMode.PlayerVsNetwork)
+        {
+            iWon = (winner == NetworkManager.Instance.myPlayer);
+        }
+        else
+        {
+            iWon = (winner == TicTacPlayer.Player1);
+        }
+
+        if (iWon)
+            ScoreManager.Instance.AddWin();
+        else
+            ScoreManager.Instance.AddLoss();
+
+        UIManager.Instance.RefreshScoreUI();
+    }
     #endregion
     /* Game Logic */
     #region network logic 

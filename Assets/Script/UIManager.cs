@@ -104,6 +104,11 @@ public class UIManager : MonoBehaviour
     [Header("Confetti")]
     public ParticleSystem confetti;
 
+    [Header("Score Stats")]
+    public GameObject Scoreboard;
+    public TMP_Text winValueText;   
+    public TMP_Text lossValueText;
+
     #endregion
     private Color activeColor = new Color(1f, 1f, 0.5f);
     private Color normalColor = Color.white;
@@ -203,6 +208,7 @@ public class UIManager : MonoBehaviour
         networkSetupPanel.SetActive(false);
         NamePanel.SetActive(false);
         confetti.Stop();
+        //ResetScores();
 
     }
     #region SetUp PlayerUI
@@ -266,17 +272,6 @@ public class UIManager : MonoBehaviour
         readyButton.interactable = true;
         masterStartButton.gameObject.SetActive(false);
         UpdateReadyVisuals(false, false);
-        //if (PhotonNetwork.IsMasterClient)
-        //{
-        //    masterStartButton.gameObject.SetActive(true);
-        //    statusText.text = "Wait for opponent, then click Start.";
-        //}
-        //else
-        //{
-        //    // The Guest cannot see the button
-        //    masterStartButton.gameObject.SetActive(false);
-        //    statusText.text = "Waiting for Host to start the game...";
-        //}
     }
     public void UpdateReadyVisuals(bool p1Ready, bool p2Ready)
     {
@@ -329,6 +324,7 @@ public class UIManager : MonoBehaviour
         GameManager.Instance.currentMode = mode;
         OpenGamePanel();
         GameManager.Instance.StartNewGame();
+        //Scoreboard.SetActive(false);
     }
 
     public void OpenGamePanel()
@@ -342,6 +338,14 @@ public class UIManager : MonoBehaviour
         {
             chatPanel.SetActive(false);
             chatBtn.gameObject.SetActive(true);
+        }
+        if (GameManager.Instance.currentMode == GameMode.PlayerVsPlayer)
+        {
+            Scoreboard.SetActive(false);
+        }
+        else 
+        {
+            Scoreboard.SetActive(true);
         }
         confetti.Stop();
     }
@@ -468,6 +472,9 @@ public class UIManager : MonoBehaviour
             ShowLobby();
         }
         confetti.Stop();
+        ScoreManager.Instance?.ResetScores();
+        RefreshScoreUI();
+        Animations.Instance.StopGlow();
     }
     private void OnCancelButtonClicked()
     {
@@ -485,13 +492,17 @@ public class UIManager : MonoBehaviour
         {
             player1Image.color = activeColor;
             player2Image.color = normalColor;
-            Animations.Instance.PlayPopup(player1Panel);
+            //Animations.Instance.PlayPopup(player1Panel);
+            Animations.Instance.StartContinuousPopup(player1Panel);
+            Animations.Instance.StopContinuousPopup(player2Panel);
         }
         else
         {
             player2Image.color = activeColor;
             player1Image.color = normalColor;
-            Animations.Instance.PlayPopup(player2Panel);
+            //Animations.Instance.PlayPopup(player2Panel);
+            Animations.Instance.StartContinuousPopup(player2Panel);
+            Animations.Instance.StopContinuousPopup(player1Panel);
         }
     }
 
@@ -652,7 +663,27 @@ public class UIManager : MonoBehaviour
     {
         chatInput.ActivateInputField();
     }
-        #endregion
+    public void RefreshScoreUI()
+    {
+        winValueText.text = ScoreManager.Instance.wins.ToString();
+        lossValueText.text = ScoreManager.Instance.losses.ToString();
     }
+    //public void ResetScores()
+    //{
+    //    // 1. Delete the specific keys from memory
+    //    PlayerPrefs.DeleteKey("Wins");
+    //    PlayerPrefs.DeleteKey("Losses");
+
+    //    // Optional: Use PlayerPrefs.DeleteAll(); if you want to wipe EVERYTHING
+
+    //    PlayerPrefs.Save();
+
+    //    // 2. Update the UI text immediately
+    //    RefreshScoreUI();
+
+    //    Debug.Log("Scores have been reset!");
+    //}
+    #endregion
+}
 
     

@@ -1,4 +1,4 @@
-using UnityEngine;
+﻿using UnityEngine;
 using System.Collections;
 using System.Collections.Generic;
 using Photon.Pun;
@@ -131,7 +131,7 @@ public class GameManager : MonoBehaviourPun
         }
         Debug.Log(aiPlayer);
 
-        Animations.Instance.PopupActive = true;
+        //Animations.Instance.PopupActive = true;
         UIManager.Instance.UpdatePlayerTurn(currentPlayer);
 
         if (currentPlayer == aiPlayer && currentMode == GameMode.PlayerVsAI)
@@ -139,17 +139,31 @@ public class GameManager : MonoBehaviourPun
     }
     public void NextMove()
     {
+        if (IsGameOver) return;
         //PopupCellsOfCurrentPlayer();
         turn++;
-
+        //IsGameOver = true;
         if (turn >= 5)
         {
             List<Cell> winCells = CheckWinner();
             if (winCells != null)
             {
+                IsGameOver = true;
                 Animations.Instance.PlayWinAnimation(winCells);
 
-                UIManager.Instance.ShowWin(currentPlayer);
+                //UIManager.Instance.ShowWin(currentPlayer);
+                HandleGameEnd(currentPlayer);
+                if (currentMode == GameMode.PlayerVsNetwork)
+                {
+                 
+                    bool iWon = (currentPlayer == NetworkManager.Instance.myPlayer);
+                    //UIManager.Instance.UpdateStats(iWon);
+                }
+                else if (currentMode == GameMode.PlayerVsAI)
+                {
+                    bool iWon = (currentPlayer != aiPlayer);
+                    //UIManager.Instance.UpdateStats(iWon);
+                }
                 return;
             }
             else if (turn == 9)
@@ -171,6 +185,35 @@ public class GameManager : MonoBehaviourPun
             }
         }
 
+    }
+    void HandleGameEnd(TicTacPlayer winner)
+    {
+        IsGameOver = true;
+        UIManager.Instance.ShowWin(winner);
+
+        switch (currentMode)
+        {
+            case GameMode.PlayerVsAI:
+                HandleAIScore(winner);
+                break;
+
+            case GameMode.PlayerVsNetwork:
+                NetworkManager.Instance.HandleNetworkScore(winner);
+                break;
+
+            case GameMode.PlayerVsPlayer:
+                // optional: no score or local score
+                break;
+        }
+    }
+    void HandleAIScore(TicTacPlayer winner)
+    {
+        if (winner == aiPlayer)
+            ScoreManager.Instance.AddLoss();
+        else
+            ScoreManager.Instance.AddWin();
+
+        UIManager.Instance.RefreshScoreUI();
     }
     internal int[] ConvertBoardToIntArray()
     {
@@ -218,7 +261,8 @@ public class GameManager : MonoBehaviourPun
                     int y = index % 3;
                     winCells.Add(gridCells[x, y]);
                 }
-                Animations.Instance.PopupActive = false;
+                //Animations.Instance.PopupActive = false;
+                Animations.Instance.StopContinuousPopup(Animations.Instance.uiObject);
                 return winCells;
             }
         }
@@ -239,6 +283,7 @@ public class GameManager : MonoBehaviourPun
             cell.ResetCell();
         }
         Animations.Instance.StopGlow();
+        UIManager.Instance.confetti.Stop();
         UIManager.Instance.UpdatePlayerTurn(currentPlayer);
         //UIManager.Instance.OpenGamePanel();
     }

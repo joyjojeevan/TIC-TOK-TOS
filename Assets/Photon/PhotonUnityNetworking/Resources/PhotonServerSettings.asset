@@ -54,6 +54,7 @@ MonoBehaviour:
   - RPC_FinalizeRematch
   - LeaveRoom
   - RPC_ReceiveChat
+  - RPC_DeclareWinner
   DisableAutoOpenWizard: 1
   ShowSettings: 1
   DevRegionSetOnce: 1
